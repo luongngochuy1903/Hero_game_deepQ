@@ -1,0 +1,34 @@
+công thức Q learning:
+    Qnew(st,at) = (1 - alpha) * Q(st,at) + alpha * (reward + mega * maxQ(st + 1, a))
+    Ví dụ về một bảng Q cho môi trường này có thể là 3x3x2, 
+    nơi có 3 trạng thái trên mỗi chiều của không gian trạng thái (ví dụ: vị trí và vận tốc) và 
+    2 hành động có thể thực hiện (ví dụ: "move left" và "move right"):
+    q_table = [
+    [[Q(0, 0, action_1), Q(0, 0, action_2)],
+     [Q(0, 1, action_1), Q(0, 1, action_2)],
+     [Q(0, 2, action_1), Q(0, 2, action_2)]],
+    
+    [[Q(1, 0, action_1), Q(1, 0, action_2)],
+     [Q(1, 1, action_1), Q(1, 1, action_2)],
+     [Q(1, 2, action_1), Q(1, 2, action_2)]],
+    
+    [[Q(2, 0, action_1), Q(2, 0, action_2)],
+     [Q(2, 1, action_1), Q(2, 1, action_2)],
+     [Q(2, 2, action_1), Q(2, 2, action_2)]]
+]
+
+trong đó: 
+    Q(st,at): trạng thái cũ 
+    Qnew(st,at): trạng thái mới
+    maxQ(st + 1, a): giá trị max của trạng thái tiếp theo của trạng thái cũ
+Quy định trò chơi:
+    Environment: Anh hùng/Phản diện, công chúa, bức tường
+    state: trạng thái bản đồ hiện tại
+    agent:
+        1. Anh hùng/Phản diện
+            Goal: công chúa
+            Action: di chuyển lên, xuống, trái, phải, cứu công chúa, né tường
+            State: tọa độ theo x, tọa độ theo y, 
+            Reward: Mỗi bước di chuyển không đến công chúa trừ 1 điểm, 
+            Terminal State: trạng thái dừng khi bản đồ không còn công chúa
+            
