@@ -2,37 +2,8 @@ import random
 import time
 from collections import deque
 import numpy as np
-
-def bfs(maze, start, end):
-    rows, cols = len(maze), len(maze[0])
-    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-    queue = deque([(start[0], start[1], [])])
-    visited = set()
-    visited.add(start)
-    
-    while queue:
-        
-        x, y, path = queue.popleft()
-        
-        # Nếu đạt đến công chúa
-        if (x, y) == end:
-            check = True
-            return path + [(x, y)]
-        
-        for dx, dy in directions:
-            nx, ny = x + dx, y + dy
-            
-            if 0 <= nx < rows and 0 <= ny < cols and maze[nx][ny] != 1 and (nx, ny) not in visited:
-                visited.add((nx, ny))
-                queue.append((nx, ny, path + [(x, y)]))
-    
-    return None  
-
-def move_hero(maze, start, end):
-    path = bfs(maze, start, end)
-    if path:
-        return path[1] if len(path) > 1 else start
-    return start 
+import pickle
+import os
 
 def update_walls(maze, num_walls, end):
     rows, cols = len(maze), len(maze[0])
@@ -76,7 +47,15 @@ successful_paths = []
 DIRECTION = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 ACTIONS = ["UP", "DOWN", "LEFT", "RIGHT"]
 state_size = [13, 13]
-q_table = np.random.uniform(low=-1, high=1, size=(state_size[0], state_size[1], len(ACTIONS)))
+ROWS = 13
+COLS = 13
+q_table = None
+save_path = "A:/AI_cuoiki/Hero_game_deepQ/dynamic_model/q_table.pkl"
+if os.path.exists(save_path):
+    with open(save_path, "rb") as f:
+        q_table = pickle.load(f)
+else:
+    q_table = np.random.uniform(low=-1, high=1, size=(ROWS, COLS, len(ACTIONS)))
 
 def get_reward(current_path, state, end, maze):
     if state in end:
@@ -168,17 +147,7 @@ for ep in range(c_no_of_eps):
     if c_end_ep_epsilon_decay >= ep > 0.25:
         v_epsilon = v_epsilon - v_epsilon_decay
 
-# print(f"Max reward đạt qua tất cả ep là: {max_ep_reward} tại ep {ep_max}")
-# print(f"giả lập game đã thành công: ")
-# successful_paths.sort(key=lambda x:x[0], reverse=True)
-# start = (0, 0)  
-# end = [(12, 12), (2, 1), (9, 4)]  
-# for x,y in end:
-#     maze[x][y] = 2
-# for my_ep, i in successful_paths:
-#     for item in i:
-#         if item in end:
-#             end.remove(item)
-#         print_maze(maze, item, end)
-#     break
 
+with open(save_path, "wb") as f:
+    pickle.dump(q_table, f)
+successful_paths.sort(key=lambda x:x[0], reverse=True)
