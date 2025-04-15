@@ -77,7 +77,7 @@ def move_q_learning(state, ACTIONS):
     return state
 
 start = (0, 0)  
-end = [(12, 12)]  
+end = [(12, 12), (2, 1), (9, 4)]  
 
 rows, cols = 13, 13
 maze = [[0 for _ in range(cols)] for _ in range(rows)]

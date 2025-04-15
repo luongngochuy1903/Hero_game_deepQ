@@ -70,10 +70,11 @@ for x, y in end:
 
 c_learning_rate = 0.2
 c_discount_value = 0.93
-c_no_of_eps = 13000
+c_no_of_eps = 90000
 epsilon = 1.0
 epsilon_min = 0.1
 epsilon_decay = 0.9995
+tolerance = 0.0001
 
 max_step = 120
 max_ep_reward = -2000
