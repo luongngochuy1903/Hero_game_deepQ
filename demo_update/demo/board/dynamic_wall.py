@@ -3,7 +3,7 @@ import time
 import numpy as np
 import os
 import pickle
-from q_learning_agent import QLearningAgent 
+from algorithms.q_learning_agent import QLearningAgent 
 
 DIRECTION = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 ACTIONS = ["UP", "DOWN", "LEFT", "RIGHT"]
@@ -47,7 +47,7 @@ class MazeGame:
 
 
 
-if __name__ == "__main__":
+def main():
     princesses = [(2, 1), (9, 4), (12, 12)]
     game = MazeGame(ROWS, COLS, princesses=princesses)
     agent = QLearningAgent(game, Q_TABLE_PATH)
