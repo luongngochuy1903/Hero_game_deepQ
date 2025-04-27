@@ -1,96 +1,131 @@
-import pygame
+# from board.static_board import StaticBoard
+# from algorithms.bfs import BFS
+# from algorithms.dfs import DFS
+# from algorithms.dijkstra import Dijkstra
+# from board.dynamic_wall import main as dynamic_main
+# from algorithms.q_learning_agent import QLearningAgent
+# from board.dynamic_wall import MazeGame
+
+# Q_TABLE_PATH = "../Hero_game_deepQ/dynamic_model/q_table.pkl"
+# princesses = [(2, 1), (9, 4), (12, 12)]
+
+# class MainConsoleApp:
+#     def __init__(self):
+#         choose = input("Chọn chế độ (1: Tường tĩnh, 2: Tường động): ")
+#         if choose == "1":
+#             self.board = StaticBoard(13, 13, princesses)
+#         elif choose == "2":
+#             self.board = MazeGame(13, 13, princesses)
+#         else:
+#             print("Lựa chọn không hợp lệ. Sử dụng chế độ tường tĩnh.")
+#         # self.board = StaticBoard(13, 13, princesses)
+#         # self.board = MazeGame(13, 13,princesses)
+#         self.algorithms = {
+#             "BFS": BFS(),
+#             "DFS": DFS(),
+#             "Dijkstra": Dijkstra(),
+#         }
+
+#     def run(self):
+#         self.board.generate_board()
+#         start = (0, 0)
+#         end = [(12, 12), (2, 1), (9, 4)]
+
+#         for name, algorithm in self.algorithms.items():
+#             print(f"\n--- {name} ---")
+#             result = algorithm.run(self.board, start)
+#             print("Path:", result["path"])
+#             print("Visited:", result["visited"])
+#             print("\nQuá trình thăm các ô:")
+#             # self.board.print_visited_step_by_step(result["visited"], start,end)
+#             if result["path"]:
+#                 print("\nToàn bộ đường đi sau khi hoàn thành:")
+#                 self.board.print_board(result["path"])
+#             else:
+#                 print("Không tìm thấy đường đi.")
+#         princesses = [(2, 1), (9, 4), (12, 12)]
+#         game = MazeGame(13, 13, princesses=princesses)
+#         agent = QLearningAgent(game, Q_TABLE_PATH)
+#         agent.run()
+# if __name__ == "__main__":
+#     app = MainConsoleApp()
+#     app.run()
+# import sys
+# import os
+
+# # Thêm đường dẫn tới thư mục src
+# sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+
+# from board.static_board import StaticBoard
+# from board.dynamic_wall import MazeGame
+
+# from algorithms.bfs import BFS
+# from algorithms.dfs import DFS
+# from algorithms.dijkstra import Dijkstra
+# from algorithms.q_learning_agent_dynamic import QLearningAgent as QLearningAgentDynamic
+# from algorithms.q_learning_agent_static import QLearningAgent as QLearningAgentStatic
+
+# # Đường dẫn tới file Q-table
+# Q_TABLE_PATH_DYNAMIC = "model/dynamic_model/q_table.pkl"
+# Q_TABLE_PATH_STATIC = "model/static_model/q_table.pkl"
+
+# # Tọa độ công chúa
+# PRINCESSES = [(2, 1), (9, 4), (12, 12)]
+
+# class MainConsoleApp:
+#     def __init__(self):
+#         self.board = StaticBoard(13, 13, PRINCESSES)
+#         self.algorithms = {
+#             "BFS": BFS(),
+#             "DFS": DFS(),
+#             "Dijkstra": Dijkstra(),
+#         }
+
+#     def run(self):
+#         self.board.generate_board()
+#         start = (0, 0)
+#         end = PRINCESSES
+
+#         for name, algorithm in self.algorithms.items():
+#             print(f"\n--- {name} ---")
+#             result = algorithm.run(self.board, start)
+#             print("Path:", result["path"])
+#             print("Visited:", result["visited"])
+#             print("\nQuá trình thăm các ô:")
+#             # self.board.print_visited_step_by_step(result["visited"], start,end)
+#             if result["path"]:
+#                 print("\nToàn bộ đường đi sau khi hoàn thành:")
+#                 self.board.print_board(result["path"])
+#             else:
+#                 print("Không tìm thấy đường đi.")
+
+#         # Sau khi chạy xong BFS, DFS, Dijkstra => chạy tiếp QLearning
+#         choose = input("1.Chạy Qleaning trên tường tĩnh\n2.Chạy Qleaning trên tường động.\nChọn chế độ: ")
+#         if choose == "1":
+#             print("\n--- QLearning ---")
+#             game = StaticBoard(13, 13, princesses=end)
+#             agent = QLearningAgentStatic(game, Q_TABLE_PATH_STATIC)
+#             agent.run()
+#         elif choose == "2":
+#             print("\n--- QLearning ---")
+#             game = MazeGame(13, 13, princesses=end)
+#             agent = QLearningAgentDynamic(game, Q_TABLE_PATH_DYNAMIC)
+#             agent.run()
+#         # print("\n--- QLearning ---")
+#         # game = MazeGame(13, 13, princesses=end)
+#         # agent = QLearningAgent(game, Q_TABLE_PATH)
+#         # agent.run()
+#         # game = StaticBoard(13, 13, princesses=end)
+#         # agent = q(game, Q_TABLE_PATH_STATIC)
+#         # agent.run()
+# if __name__ == "__main__":
+#     app = MainConsoleApp()
+#     app.run()
+
 import sys
-from UI_static import run_static_mode
-# from UI_dynamic import run_dynamic_mode
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
+from UI.menu import run_menu
 
-# Khởi tạo Pygame
-pygame.init()
-pygame.mixer.init()
-
-# Tải và phát nhạc nền
-pygame.mixer.music.load("assets/sounds/horror-tension-suspense-322304.mp3")  # Đường dẫn tới tệp nhạc
-pygame.mixer.music.play(-1)  # -1 để phát lặp vô hạn
-
-# Cửa sổ game
-WIDTH, HEIGHT = 1024, 750
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("RESCUE THE RESIDENTS")
-
-# Load ảnh nền
-menu_img = pygame.image.load("assets/back_ground/bg_menu.png")
-menu_img = pygame.transform.scale(menu_img, (WIDTH, HEIGHT))
-select_mode_img = pygame.image.load("assets/back_ground/bg_select_mode.png")
-select_mode_img = pygame.transform.scale(select_mode_img, (WIDTH, HEIGHT))
-
-# Màu sắc
-WHITE = (255, 255, 255)
-BROWN = (139, 69, 19)
-
-# Font
-button_font = pygame.font.SysFont("Arial", 36, "ITALIC")
-
-# Nút chế độ
-# Kích thước và khoảng cách giữa các nút
-button_width = 200
-button_height = 60
-button_spacing = 30  # khoảng cách giữa các nút
-
-# Tính vị trí X sao cho các nút canh giữa màn hình
-center_x = WIDTH // 2 - button_width // 2
-
-# Tính vị trí Y bắt đầu (từ trên xuống)
-start_y = 225
-
-# Tạo các nút theo hàng dọc
-dynamic_button = pygame.Rect(center_x, start_y, button_width, button_height)
-static_button  = pygame.Rect(center_x, start_y + button_height + button_spacing, button_width, button_height)
-quit_button    = pygame.Rect(center_x, start_y + 2 * (button_height + button_spacing), button_width, button_height)
-
-# Hàm vẽ nút
-def draw_button(rect, image_path):
-    img = pygame.image.load(image_path).convert_alpha()
-    img = pygame.transform.scale(img, (rect.width, rect.height))
-    screen.blit(img, rect.topleft)
-    
-# Vòng lặp chính
-current_screen = "menu" # Trạng thái màn hình
-running = True
-while running:
-    if current_screen == "menu":
-        screen.blit(menu_img, (0, 0))
-        # Hướng dẫn bấm space
-        hint_surface = button_font.render("PRESS SPACE TO START", True, WHITE)
-        hint_rect = hint_surface.get_rect(center=(WIDTH//2, HEIGHT - 50))  # Dịch xuống dưới cùng
-        screen.blit(hint_surface, hint_rect)
-
-    elif current_screen == "mode_select":
-        screen.blit(select_mode_img, (0, 0))
-        draw_button(dynamic_button, "assets/buttons/button_dynamic.png")
-        draw_button(static_button, "assets/buttons/button_static.png")
-        draw_button(quit_button, "assets/buttons/button_quit.png")
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-
-        if event.type == pygame.KEYDOWN:
-            if current_screen == "menu" and event.key == pygame.K_SPACE:
-                current_screen = "mode_select"
-
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if current_screen == "mode_select":
-                if dynamic_button.collidepoint(event.pos):
-                    pygame.mixer.music.stop()
-                    print("hí")
-                    # run_dynamic_mode()
-                elif static_button.collidepoint(event.pos):
-                    pygame.mixer.music.stop()
-                    run_static_mode()
-                elif quit_button.collidepoint(event.pos):
-                    pygame.quit()
-
-    pygame.display.flip()
-
-pygame.quit()
-sys.exit()
+run_menu()
