@@ -34,6 +34,12 @@ def run_static_mode():
     MAZE_WIDTH = COLS * TILE_SIZE
     MAZE_HEIGHT = ROWS * TILE_SIZE
 
+    # Define maze positions
+    LEFT_MAZE_X = 30
+    LEFT_MAZE_Y = 70
+    RIGHT_MAZE_X = LEFT_MAZE_X + MAZE_WIDTH + 100
+    RIGHT_MAZE_Y = 70
+
     # Load images
     try:
         wall_img = pygame.image.load("assets/build_maze/wall.png")
@@ -46,9 +52,10 @@ def run_static_mode():
         monster_img = pygame.transform.scale(monster_img, (PLAYER_SIZE, PLAYER_SIZE))
         resident_img = pygame.image.load("assets/characters/resident.png")
         resident_img = pygame.transform.scale(resident_img, (PLAYER_SIZE, PLAYER_SIZE))
-        # Load background image for algorithm selection screen
-        bg_algorithm = pygame.image.load("assets/bg_algorithm.png")  # Adjust path as needed
-        bg_algorithm = pygame.transform.scale(bg_algorithm, (WIDTH, HEIGHT))  # Scale to fit window
+        bg_maze = pygame.image.load("assets/back_ground/bg_maze_static.png")
+        bg_maze = pygame.transform.scale(bg_maze, (WIDTH, HEIGHT))
+        bg_algorithm = pygame.image.load("assets/back_ground/bg_algorithm.png")
+        bg_algorithm = pygame.transform.scale(bg_algorithm, (WIDTH, HEIGHT))
     except FileNotFoundError as e:
         print(f"Image loading failed: {e}")
         return None
@@ -69,15 +76,18 @@ def run_static_mode():
 
     # Button settings
     try:
-        font = pygame.font.SysFont("arial", 30)
+        # Font for buttons (bold, not italic)
+        button_font = pygame.font.SysFont("arial", 30, bold=True)
+        # Font for titles (italic, not bold)
+        title_font = pygame.font.SysFont("arial", 30, italic=True, bold=True)
     except Exception as e:
         print(f"Font loading failed: {e}")
         return None
 
-    # Main screen buttons (centered)
+    # Main screen buttons (centered below the mazes)
     button_width, button_height = 150, 50
     button_margin = 20
-    button_y = MAZE_HEIGHT + 50
+    button_y = LEFT_MAZE_Y + MAZE_HEIGHT + 50
     total_button_width = 3 * button_width + 2 * button_margin
     start_x = (WIDTH - total_button_width) // 2
     buttons = [
@@ -89,7 +99,7 @@ def run_static_mode():
     # Algorithm selection buttons (centered)
     algo_button_width, algo_button_height = 200, 50
     algo_button_margin = 10
-    algo_y_start = 100
+    algo_y_start = 280
     algorithms = ["BFS", "DFS", "Dijkstra", "Q-Learning"]
     left_algo_x = (WIDTH // 4) - (algo_button_width // 2)
     left_algo_buttons = [
@@ -120,12 +130,12 @@ def run_static_mode():
     MOVE_DELAY = 0.5
     current_mode = "main"
 
-    def draw_maze(maze, offset_x, player_pos, resident_pos, visited_residents, player_img, resident_img):
+    def draw_maze(maze, offset_x, offset_y, player_pos, resident_pos, visited_residents, player_img, resident_img):
         for row in range(ROWS):
             for col in range(COLS):
                 tile = maze[row][col]
                 x = offset_x + col * TILE_SIZE
-                y = row * TILE_SIZE
+                y = offset_y + row * TILE_SIZE
                 if tile == 1:
                     screen.blit(wall_img, (x, y))
                 else:
@@ -134,36 +144,36 @@ def run_static_mode():
         for resident in resident_pos:
             if resident not in visited_residents:
                 px, py = resident[1] * TILE_SIZE - OFFSET, resident[0] * TILE_SIZE - OFFSET
-                screen.blit(resident_img, (offset_x + px, py))
+                screen.blit(resident_img, (offset_x + px, offset_y + py))
 
         px, py = player_pos[1] * TILE_SIZE - OFFSET, player_pos[0] * TILE_SIZE - OFFSET
-        screen.blit(player_img, (offset_x + px, py))
+        screen.blit(player_img, (offset_x + px, offset_y + py))
 
     def draw_buttons(button_list, mouse_pos, side=None):
         for button in button_list:
             is_hovered = button["rect"].collidepoint(mouse_pos)
             if is_hovered:
-                color = (200, 200, 200)
+                color = (255, 200, 100)
             else:
                 if side == "left":
-                    color = (150, 150, 150) if button["text"] == left_algo else (100, 100, 100)
+                    color = (255, 69, 0) if button["text"] == left_algo else (255, 140, 0)
                 elif side == "right":
-                    color = (150, 150, 150) if button["text"] == right_algo else (100, 100, 100)
+                    color = (255, 69, 0) if button["text"] == right_algo else (255, 140, 0)
                 else:
-                    color = (100, 100, 100)
+                    color = (255, 140, 0)
 
-            pygame.draw.rect(screen, color, button["rect"])
-            text_surf = font.render(button["text"], True, (255, 255, 255))
+            pygame.draw.rect(screen, color, button["rect"], border_radius=10)
+            text_surf = button_font.render(button["text"], True, (255, 255, 255))
             text_rect = text_surf.get_rect(center=button["rect"].center)
             screen.blit(text_surf, text_rect)
 
     def draw_algorithm_select():
-        # Display the background image instead of filling with black
-        screen.blit(bg_algorithm, (0, 0))  # Blit the background at the top-left corner (0, 0)
-        title_left = font.render("Left Maze Algorithm", True, (255, 255, 255))
+        screen.blit(bg_algorithm, (0, 0))
+        # Use title_font for rendering titles (italic)
+        title_left = title_font.render("Left Maze Algorithm", True, (255, 255, 255))
         title_left_rect = title_left.get_rect(center=(left_algo_x + algo_button_width // 2, algo_y_start - 40))
         screen.blit(title_left, title_left_rect)
-        title_right = font.render("Right Maze Algorithm", True, (255, 255, 255))
+        title_right = title_font.render("Right Maze Algorithm", True, (255, 255, 255))
         title_right_rect = title_right.get_rect(center=(right_algo_x + algo_button_width // 2, algo_y_start - 40))
         screen.blit(title_right, title_right_rect)
         mouse_pos = pygame.mouse.get_pos()
@@ -193,18 +203,19 @@ def run_static_mode():
     clock = pygame.time.Clock()
     running = True
     while running:
-        screen.fill((0, 0, 0))
         mouse_pos = pygame.mouse.get_pos()
 
         if current_mode == "main":
-            draw_maze(maze_map1, 50, player1_pos, resident1_pos, left_visited_residents, monster_img, resident_img)
-            draw_maze(maze_map2, 50 + MAZE_WIDTH + 50, player2_pos, resident2_pos, right_visited_residents, hero_img, resident_img)
+            screen.blit(bg_maze, (0, 0))
+            draw_maze(maze_map1, LEFT_MAZE_X, LEFT_MAZE_Y, player1_pos, resident1_pos, left_visited_residents, monster_img, resident_img)
+            draw_maze(maze_map2, RIGHT_MAZE_X, RIGHT_MAZE_Y, player2_pos, resident2_pos, right_visited_residents, hero_img, resident_img)
             draw_buttons(buttons, mouse_pos)
         elif current_mode == "algorithm_select":
             draw_algorithm_select()
         elif current_mode == "moving":
-            draw_maze(maze_map1, 50, player1_pos, resident1_pos, left_visited_residents, monster_img, resident_img)
-            draw_maze(maze_map2, 50 + MAZE_WIDTH + 50, player2_pos, resident2_pos, right_visited_residents, hero_img, resident_img)
+            screen.blit(bg_maze, (0, 0))
+            draw_maze(maze_map1, LEFT_MAZE_X, LEFT_MAZE_Y, player1_pos, resident1_pos, left_visited_residents, monster_img, resident_img)
+            draw_maze(maze_map2, RIGHT_MAZE_X, RIGHT_MAZE_Y, player2_pos, resident2_pos, right_visited_residents, hero_img, resident_img)
             draw_buttons(buttons, mouse_pos)
 
             current_time = time.time()
@@ -286,8 +297,6 @@ def run_static_mode():
                             left_finished = False
                             right_finished = False
                             last_move_time = time.time()
-                        else:
-                            print("Please select an algorithm for both mazes")
                     elif cancel_button["rect"].collidepoint(mouse_pos):
                         left_algo = None
                         right_algo = None

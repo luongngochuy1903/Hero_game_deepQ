@@ -31,16 +31,14 @@ def run_menu():
 
     # Màu sắc
     WHITE = (255, 255, 255)
-    BROWN = (139, 69, 19)
 
     # Font
-    button_font = pygame.font.SysFont("Arial", 36, "ITALIC")
+    button_font = pygame.font.SysFont("Arial", 36, bold=True)  # Change to bold instead of italic
 
     # Nút chế độ
-    # Kích thước và khoảng cách giữa các nút
     button_width = 200
     button_height = 60
-    button_spacing = 30  # khoảng cách giữa các nút
+    button_spacing = 30
 
     # Tính vị trí X sao cho các nút canh giữa màn hình
     center_x = WIDTH // 2 - button_width // 2
@@ -48,33 +46,43 @@ def run_menu():
     # Tính vị trí Y bắt đầu (từ trên xuống)
     start_y = 225
 
-    # Tạo các nút theo hàng dọc
-    dynamic_button = pygame.Rect(center_x, start_y, button_width, button_height)
-    static_button  = pygame.Rect(center_x, start_y + button_height + button_spacing, button_width, button_height)
-    quit_button    = pygame.Rect(center_x, start_y + 2 * (button_height + button_spacing), button_width, button_height)
+    # Tạo danh sách các nút
+    buttons = [
+        {"text": "Dynamic", "rect": pygame.Rect(center_x, start_y, button_width, button_height)},
+        {"text": "Static", "rect": pygame.Rect(center_x, start_y + button_height + button_spacing, button_width, button_height)},
+        {"text": "Quit", "rect": pygame.Rect(center_x, start_y + 2 * (button_height + button_spacing), button_width, button_height)},
+    ]
 
     # Hàm vẽ nút
-    def draw_button(rect, image_path):
-        img = pygame.image.load(image_path).convert_alpha()
-        img = pygame.transform.scale(img, (rect.width, rect.height))
-        screen.blit(img, rect.topleft)
-        
+    def draw_buttons(button_list, mouse_pos):
+        for button in button_list:
+            is_hovered = button["rect"].collidepoint(mouse_pos)
+            if is_hovered:
+                color = (255, 200, 100)  # Lighter orange for hover effect
+            else:
+                color = (255, 140, 0)  # Default orange
+
+            pygame.draw.rect(screen, color, button["rect"], border_radius=20)
+            text_surf = button_font.render(button["text"], True, (WHITE))
+            text_rect = text_surf.get_rect(center=button["rect"].center)
+            screen.blit(text_surf, text_rect)
+
     # Vòng lặp chính
-    current_screen = "menu" # Trạng thái màn hình
+    current_screen = "menu"
     running = True
     while running:
+        mouse_pos = pygame.mouse.get_pos()  # Get mouse position for hover effect
+
         if current_screen == "menu":
             screen.blit(menu_img, (0, 0))
             # Hướng dẫn bấm space
             hint_surface = button_font.render("PRESS SPACE TO START", True, WHITE)
-            hint_rect = hint_surface.get_rect(center=(WIDTH//2, HEIGHT - 50))  # Dịch xuống dưới cùng
+            hint_rect = hint_surface.get_rect(center=(WIDTH//2, HEIGHT - 50))
             screen.blit(hint_surface, hint_rect)
 
         elif current_screen == "mode_select":
             screen.blit(select_mode_img, (0, 0))
-            draw_button(dynamic_button, "assets/buttons/button_dynamic.png")
-            draw_button(static_button, "assets/buttons/button_static.png")
-            draw_button(quit_button, "assets/buttons/button_quit.png")
+            draw_buttons(buttons, mouse_pos)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -86,15 +94,17 @@ def run_menu():
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if current_screen == "mode_select":
-                    if dynamic_button.collidepoint(event.pos):
-                        pygame.mixer.music.stop()
-                        print("hí")
-                        # run_dynamic_mode()
-                    elif static_button.collidepoint(event.pos):
-                        pygame.mixer.music.stop()
-                        run_static_mode()
-                    elif quit_button.collidepoint(event.pos):
-                        pygame.quit()
+                    for button in buttons:
+                        if button["rect"].collidepoint(event.pos):
+                            if button["text"] == "Dynamic":
+                                pygame.mixer.music.stop()
+                                print("hí")
+                                # run_dynamic_mode()
+                            elif button["text"] == "Static":
+                                pygame.mixer.music.stop()
+                                run_static_mode()
+                            elif button["text"] == "Quit":
+                                pygame.quit()
 
         pygame.display.flip()
 
