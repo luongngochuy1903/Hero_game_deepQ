@@ -92,7 +92,7 @@
 #             print("Path:", result["path"])
 #             print("Visited:", result["visited"])
 #             print("\nQuá trình thăm các ô:")
-#             # self.board.print_visited_step_by_step(result["visited"], start,end)
+#             self.board.print_visited_step_by_step(result["visited"], start,end)
 #             if result["path"]:
 #                 print("\nToàn bộ đường đi sau khi hoàn thành:")
 #                 self.board.print_board(result["path"])
