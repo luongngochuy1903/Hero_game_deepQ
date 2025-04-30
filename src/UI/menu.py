@@ -1,7 +1,7 @@
 import pygame
 import sys
 from UI.maze_static import run_static_mode
-# from maze_dynamic import run_dynamic_mode
+from UI.maze_dynamic import run_dynamic_mode
 
 def run_menu():
     # Khởi tạo Pygame
@@ -98,8 +98,7 @@ def run_menu():
                         if button["rect"].collidepoint(event.pos):
                             if button["text"] == "Dynamic":
                                 pygame.mixer.music.stop()
-                                print("hí")
-                                # run_dynamic_mode()
+                                run_dynamic_mode()
                             elif button["text"] == "Static":
                                 pygame.mixer.music.stop()
                                 run_static_mode()

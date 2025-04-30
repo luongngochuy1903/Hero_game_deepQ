@@ -60,6 +60,10 @@ def run_static_mode():
         print(f"Image loading failed: {e}")
         return None
 
+    # Add a color for highlighting the final path
+    PATH_HIGHLIGHT_COLOR = (0, 255, 0)  # Yellow for the final path
+    VISITED_COLOR = (255, 0, 0)  # Green for visited tiles during movement
+
     # Initialize two StaticBoard instances
     residents = [(2, 1), (9, 4), (12, 12)]
     board1 = StaticBoard(ROWS, COLS, residents)
@@ -73,7 +77,7 @@ def run_static_mode():
     maze_map2 = board2.grid
     player2_pos = list(board2.q_pos)  # Right maze player (hero)
     resident2_pos = board2.princesses
-
+    
     # Button settings
     try:
         # Font for buttons (bold, not italic)
@@ -116,12 +120,14 @@ def run_static_mode():
     confirm_button = {"text": "Confirm", "rect": pygame.Rect(confirm_x, algo_y_start + 4 * (algo_button_height + algo_button_margin) + 20, 150, 50)}
     cancel_button = {"text": "Cancel", "rect": pygame.Rect(confirm_x + 150 + 20, algo_y_start + 4 * (algo_button_height + algo_button_margin) + 20, 150, 50)}
 
-    # Track selected algorithms, paths, and visited residents
+    # Track selected algorithms, paths, visited lists, and states
     left_algo = None
     right_algo = None
-    left_path = []
-    right_path = []
-    current_path_index = 0
+    left_visited = []  # Store visited order
+    right_visited = []  # Store visited order
+    left_path = []  # Store final path
+    right_path = []  # Store final path
+    current_visited_index = 0
     left_finished = False
     right_finished = False
     left_visited_residents = []
@@ -129,8 +135,10 @@ def run_static_mode():
     last_move_time = 0
     MOVE_DELAY = 0.5
     current_mode = "main"
+    show_final_path = False  # Flag to show final path after movement
 
-    def draw_maze(maze, offset_x, offset_y, player_pos, resident_pos, visited_residents, player_img, resident_img):
+    def draw_maze(maze, offset_x, offset_y, player_pos, resident_pos, visited_residents, player_img, resident_img, visited, path, current_index):
+        # Draw the maze grid
         for row in range(ROWS):
             for col in range(COLS):
                 tile = maze[row][col]
@@ -141,11 +149,26 @@ def run_static_mode():
                 else:
                     screen.blit(floor_img, (x, y))
 
+        # Draw visited tiles (up to current index)
+        for i, pos in enumerate(visited[:current_index + 1]):
+            x = offset_x + pos[1] * TILE_SIZE
+            y = offset_y + pos[0] * TILE_SIZE
+            pygame.draw.rect(screen, VISITED_COLOR, (x, y, TILE_SIZE, TILE_SIZE), 2)
+
+        # Draw final path if movement is complete
+        if show_final_path:
+            for pos in path:
+                x = offset_x + pos[1] * TILE_SIZE
+                y = offset_y + pos[0] * TILE_SIZE
+                pygame.draw.rect(screen, PATH_HIGHLIGHT_COLOR, (x, y, TILE_SIZE, TILE_SIZE), 4)
+
+        # Draw residents (except those visited)
         for resident in resident_pos:
             if resident not in visited_residents:
                 px, py = resident[1] * TILE_SIZE - OFFSET, resident[0] * TILE_SIZE - OFFSET
                 screen.blit(resident_img, (offset_x + px, offset_y + py))
 
+        # Draw player
         px, py = player_pos[1] * TILE_SIZE - OFFSET, player_pos[0] * TILE_SIZE - OFFSET
         screen.blit(player_img, (offset_x + px, offset_y + py))
 
@@ -193,12 +216,13 @@ def run_static_mode():
             algo_instance = algo_class()
             result = algo_instance.run(board, start)
             path = result.get("path", [])
+            visited = result.get("visited", [])
             if not path:
                 print(f"{algorithm} failed to find a path to residents")
-            return path
+            return visited, path  # Return both visited and path
         else:
             print(f"Algorithm {algorithm} not found")
-            return []
+            return [], []
 
     clock = pygame.time.Clock()
     running = True
@@ -207,42 +231,43 @@ def run_static_mode():
 
         if current_mode == "main":
             screen.blit(bg_maze, (0, 0))
-            draw_maze(maze_map1, LEFT_MAZE_X, LEFT_MAZE_Y, player1_pos, resident1_pos, left_visited_residents, monster_img, resident_img)
-            draw_maze(maze_map2, RIGHT_MAZE_X, RIGHT_MAZE_Y, player2_pos, resident2_pos, right_visited_residents, hero_img, resident_img)
+            draw_maze(maze_map1, LEFT_MAZE_X, LEFT_MAZE_Y, player1_pos, resident1_pos, left_visited_residents, monster_img, resident_img, left_visited, left_path, current_visited_index)
+            draw_maze(maze_map2, RIGHT_MAZE_X, RIGHT_MAZE_Y, player2_pos, resident2_pos, right_visited_residents, hero_img, resident_img, right_visited, right_path, current_visited_index)
             draw_buttons(buttons, mouse_pos)
         elif current_mode == "algorithm_select":
             draw_algorithm_select()
         elif current_mode == "moving":
             screen.blit(bg_maze, (0, 0))
-            draw_maze(maze_map1, LEFT_MAZE_X, LEFT_MAZE_Y, player1_pos, resident1_pos, left_visited_residents, monster_img, resident_img)
-            draw_maze(maze_map2, RIGHT_MAZE_X, RIGHT_MAZE_Y, player2_pos, resident2_pos, right_visited_residents, hero_img, resident_img)
+            draw_maze(maze_map1, LEFT_MAZE_X, LEFT_MAZE_Y, player1_pos, resident1_pos, left_visited_residents, monster_img, resident_img, left_visited, left_path, current_visited_index)
+            draw_maze(maze_map2, RIGHT_MAZE_X, RIGHT_MAZE_Y, player2_pos, resident2_pos, right_visited_residents, hero_img, resident_img, right_visited, right_path, current_visited_index)
             draw_buttons(buttons, mouse_pos)
 
             current_time = time.time()
             if current_time - last_move_time >= MOVE_DELAY:
-                if not left_finished and current_path_index < len(left_path):
-                    player1_pos = list(left_path[current_path_index])
+                if not left_finished and current_visited_index < len(left_visited):
+                    player1_pos = list(left_visited[current_visited_index])
                     if tuple(player1_pos) in resident1_pos and tuple(player1_pos) not in left_visited_residents:
                         left_visited_residents.append(tuple(player1_pos))
-                        print(f"Left maze: Reached resident at {player1_pos}, removing from display")
-                    if current_path_index == len(left_path) - 1:
+                        print(f"Left maze: Reached resident at {player1_pos}")
+                    if current_visited_index == len(left_visited) - 1:
                         left_finished = True
-                        print("Left maze: All residents reached, waiting for right maze")
+                        print("Left maze: Visited all positions")
 
-                if not right_finished and current_path_index < len(right_path):
-                    player2_pos = list(right_path[current_path_index])
+                if not right_finished and current_visited_index < len(right_visited):
+                    player2_pos = list(right_visited[current_visited_index])
                     if tuple(player2_pos) in resident2_pos and tuple(player2_pos) not in right_visited_residents:
                         right_visited_residents.append(tuple(player2_pos))
-                        print(f"Right maze: Reached resident at {player2_pos}, removing from display")
-                    if current_path_index == len(right_path) - 1:
+                        print(f"Right maze: Reached resident at {player2_pos}")
+                    if current_visited_index == len(right_visited) - 1:
                         right_finished = True
-                        print("Right maze: All residents reached, waiting for left maze")
+                        print("Right maze: Visited all positions")
 
                 if not (left_finished and right_finished):
-                    current_path_index += 1
+                    current_visited_index += 1
 
                 if left_finished and right_finished:
-                    print("Both mazes: All residents reached")
+                    print("Both mazes: All positions visited, highlighting final path")
+                    show_final_path = True  # Enable final path highlighting
                     current_mode = "main"
                 last_move_time = current_time
 
@@ -265,11 +290,14 @@ def run_static_mode():
                                 player2_pos = list(board2.q_pos)
                                 left_visited_residents = []
                                 right_visited_residents = []
+                                left_visited = []
+                                right_visited = []
                                 left_path = []
                                 right_path = []
-                                current_path_index = 0
+                                current_visited_index = 0
                                 left_finished = False
                                 right_finished = False
+                                show_final_path = False
                                 last_move_time = 0
                                 left_algo = None
                                 right_algo = None
@@ -290,12 +318,13 @@ def run_static_mode():
                         if left_algo and right_algo:
                             print(f"Algorithms confirmed: Left={left_algo}, Right={right_algo}")
                             start_pos = (0, 0)
-                            left_path = get_path(left_algo, board1, start_pos)
-                            right_path = get_path(right_algo, board2, start_pos)
+                            left_visited, left_path = get_path(left_algo, board1, start_pos)
+                            right_visited, right_path = get_path(right_algo, board2, start_pos)
                             current_mode = "moving"
-                            current_path_index = 0
+                            current_visited_index = 0
                             left_finished = False
                             right_finished = False
+                            show_final_path = False
                             last_move_time = time.time()
                     elif cancel_button["rect"].collidepoint(mouse_pos):
                         left_algo = None

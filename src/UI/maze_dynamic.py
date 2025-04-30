@@ -35,6 +35,12 @@ def run_dynamic_mode():
     MAZE_WIDTH = COLS * TILE_SIZE
     MAZE_HEIGHT = ROWS * TILE_SIZE
 
+    # Define maze positions
+    LEFT_MAZE_X = 30
+    LEFT_MAZE_Y = 70
+    RIGHT_MAZE_X = LEFT_MAZE_X + MAZE_WIDTH + 100
+    RIGHT_MAZE_Y = 70
+
     # Load images
     try:
         wall_img = pygame.image.load("assets/build_maze/wall.png")
@@ -47,35 +53,43 @@ def run_dynamic_mode():
         monster_img = pygame.transform.scale(monster_img, (PLAYER_SIZE, PLAYER_SIZE))
         resident_img = pygame.image.load("assets/characters/resident.png")
         resident_img = pygame.transform.scale(resident_img, (PLAYER_SIZE, PLAYER_SIZE))
+        bg_maze = pygame.image.load("assets/back_ground/bg_maze_dynamic.png")
+        bg_maze = pygame.transform.scale(bg_maze, (WIDTH, HEIGHT))
+        bg_algorithm = pygame.image.load("assets/back_ground/bg_algorithm.png")
+        bg_algorithm = pygame.transform.scale(bg_algorithm, (WIDTH, HEIGHT))
     except FileNotFoundError as e:
         print(f"Image loading failed: {e}")
         return None
 
+    # Add color for highlighting visited tiles
+    VISITED_COLOR = (255, 0, 0)  # Red for visited tiles during movement
+
     # Initialize two DynamicBoard instances
     residents = [(2, 1), (9, 4), (12, 12)]
     board1 = DynamicBoard(ROWS, COLS, residents)
-    board1._update_walls(num_walls=20)  # Initialize with 20 walls (adjust as needed)
+    board1._update_walls(num_walls=20)
     maze_map1 = board1.grid
     player1_pos = list(board1.q_pos)  # Left maze player (monster)
     resident1_pos = board1.princesses
 
     board2 = DynamicBoard(ROWS, COLS, residents)
-    board2._update_walls(num_walls=20)  # Initialize with 20 walls
+    board2._update_walls(num_walls=20)
     maze_map2 = board2.grid
     player2_pos = list(board2.q_pos)  # Right maze player (hero)
     resident2_pos = board2.princesses
 
     # Button settings
     try:
-        font = pygame.font.SysFont("arial", 30)
+        button_font = pygame.font.SysFont("arial", 30, bold=True)
+        title_font = pygame.font.SysFont("arial", 30, italic=True, bold=True)
     except Exception as e:
         print(f"Font loading failed: {e}")
         return None
 
-    # Main screen buttons (centered)
+    # Main screen buttons (centered below the mazes)
     button_width, button_height = 150, 50
     button_margin = 20
-    button_y = MAZE_HEIGHT + 50
+    button_y = LEFT_MAZE_Y + MAZE_HEIGHT + 50
     total_button_width = 3 * button_width + 2 * button_margin
     start_x = (WIDTH - total_button_width) // 2
     buttons = [
@@ -87,14 +101,14 @@ def run_dynamic_mode():
     # Algorithm selection buttons (centered)
     algo_button_width, algo_button_height = 200, 50
     algo_button_margin = 10
-    algo_y_start = 100
+    algo_y_start = 280
     algorithms = ["BFS", "DFS", "Dijkstra", "Q-Learning"]
-    left_algo_x = (WIDTH // 4) - (algo_button_width // 2)  # 200
+    left_algo_x = (WIDTH // 4) - (algo_button_width // 2)
     left_algo_buttons = [
         {"text": algo, "rect": pygame.Rect(left_algo_x, algo_y_start + i * (algo_button_height + algo_button_margin), algo_button_width, algo_button_height)}
         for i, algo in enumerate(algorithms)
     ]
-    right_algo_x = (3 * WIDTH // 4) - (algo_button_width // 2)  # 800
+    right_algo_x = (3 * WIDTH // 4) - (algo_button_width // 2)
     right_algo_buttons = [
         {"text": algo, "rect": pygame.Rect(right_algo_x, algo_y_start + i * (algo_button_height + algo_button_margin), algo_button_width, algo_button_height)}
         for i, algo in enumerate(algorithms)
@@ -104,61 +118,82 @@ def run_dynamic_mode():
     confirm_button = {"text": "Confirm", "rect": pygame.Rect(confirm_x, algo_y_start + 4 * (algo_button_height + algo_button_margin) + 20, 150, 50)}
     cancel_button = {"text": "Cancel", "rect": pygame.Rect(confirm_x + 150 + 20, algo_y_start + 4 * (algo_button_height + algo_button_margin) + 20, 150, 50)}
 
-    # Track selected algorithms, paths, and visited residents
+    # Track selected algorithms, paths, visited lists, and states
     left_algo = None
     right_algo = None
-    left_path = []  # Single path to all residents for left maze
-    right_path = []  # Single path to all residents for right maze
-    current_path_index = 0  # Index in the path for movement
-    left_finished = False  # Track if left maze has finished
-    right_finished = False  # Track if right maze has finished
-    left_visited_residents = []  # Track residents visited by left maze
-    right_visited_residents = []  # Track residents visited by right maze
+    left_visited = []
+    right_visited = []
+    left_path = []
+    right_path = []
+    left_visited_index = 0
+    right_visited_index = 0
+    left_finished = False
+    right_finished = False
+    left_visited_residents = []
+    right_visited_residents = []
     last_move_time = 0
     last_wall_update_time = 0
-    MOVE_DELAY = 0.5  # Seconds between moves
-    WALL_UPDATE_INTERVAL = 5.0  # Seconds between wall updates
-    current_mode = "main"  # main, algorithm_select, moving
+    MOVE_DELAY = 0.2
+    WALL_UPDATE_INTERVAL = 5.0
+    current_mode = "main"
 
-    def draw_maze(maze, offset_x, player_pos, resident_pos, visited_residents, player_img, resident_img):
+    def draw_maze(maze, offset_x, offset_y, player_pos, resident_pos, visited_residents, player_img, resident_img, visited, current_index):
         for row in range(ROWS):
             for col in range(COLS):
                 tile = maze[row][col]
                 x = offset_x + col * TILE_SIZE
-                y = row * TILE_SIZE
+                y = offset_y + row * TILE_SIZE
                 if tile == 1:
                     screen.blit(wall_img, (x, y))
                 else:
                     screen.blit(floor_img, (x, y))
 
-        # Draw only residents that haven't been visited
+        # Draw visited tiles (up to current index) in correct order
+        for i, pos in enumerate(visited[:current_index + 1]):
+            x = offset_x + pos[1] * TILE_SIZE
+            y = offset_y + pos[0] * TILE_SIZE
+            pygame.draw.rect(screen, VISITED_COLOR, (x, y, TILE_SIZE, TILE_SIZE), 2)
+
+        # Draw residents (except those visited)
         for resident in resident_pos:
             if resident not in visited_residents:
                 px, py = resident[1] * TILE_SIZE - OFFSET, resident[0] * TILE_SIZE - OFFSET
-                screen.blit(resident_img, (offset_x + px, py))
+                screen.blit(resident_img, (offset_x + px, offset_y + py))
 
+        # Draw player
         px, py = player_pos[1] * TILE_SIZE - OFFSET, player_pos[0] * TILE_SIZE - OFFSET
-        screen.blit(player_img, (offset_x + px, py))
+        screen.blit(player_img, (offset_x + px, offset_y + py))
 
-    def draw_buttons(button_list):
+    def draw_buttons(button_list, mouse_pos, side=None):
         for button in button_list:
-            color = (150, 150, 150) if button["text"] in [left_algo, right_algo] else (100, 100, 100)
-            pygame.draw.rect(screen, color, button["rect"])
-            text_surf = font.render(button["text"], True, (255, 255, 255))
+            is_hovered = button["rect"].collidepoint(mouse_pos)
+            if is_hovered:
+                color = (255, 200, 100)
+            else:
+                if side == "left":
+                    color = (255, 69, 0) if button["text"] == left_algo else (255, 140, 0)
+                elif side == "right":
+                    color = (255, 69, 0) if button["text"] == right_algo else (255, 140, 0)
+                else:
+                    color = (255, 140, 0)
+
+            pygame.draw.rect(screen, color, button["rect"], border_radius=10)
+            text_surf = button_font.render(button["text"], True, (255, 255, 255))
             text_rect = text_surf.get_rect(center=button["rect"].center)
             screen.blit(text_surf, text_rect)
 
     def draw_algorithm_select():
-        screen.fill((0, 0, 0))
-        title_left = font.render("Left Maze Algorithm", True, (255, 255, 255))
+        screen.blit(bg_algorithm, (0, 0))
+        title_left = title_font.render("Left Maze Algorithm", True, (255, 255, 255))
         title_left_rect = title_left.get_rect(center=(left_algo_x + algo_button_width // 2, algo_y_start - 40))
         screen.blit(title_left, title_left_rect)
-        title_right = font.render("Right Maze Algorithm", True, (255, 255, 255))
+        title_right = title_font.render("Right Maze Algorithm", True, (255, 255, 255))
         title_right_rect = title_right.get_rect(center=(right_algo_x + algo_button_width // 2, algo_y_start - 40))
         screen.blit(title_right, title_right_rect)
-        draw_buttons(left_algo_buttons)
-        draw_buttons(right_algo_buttons)
-        draw_buttons([confirm_button, cancel_button])
+        mouse_pos = pygame.mouse.get_pos()
+        draw_buttons(left_algo_buttons, mouse_pos, side="left")
+        draw_buttons(right_algo_buttons, mouse_pos, side="right")
+        draw_buttons([confirm_button, cancel_button], mouse_pos)
 
     def get_path(algorithm, board, start):
         algorithm_map = {
@@ -169,101 +204,121 @@ def run_dynamic_mode():
         }
         algo_class = algorithm_map.get(algorithm)
         if algo_class:
-            # Instantiate the class
             if algorithm == "Q-Learning":
-                algo_instance = algo_class()  # QLearningAgent may need specific initialization
+                algo_instance = algo_class()
+                result = algo_instance.run(board, start)
+                path = result.get("path", [])
+                visited = result.get("visited", [])
+                # If Q-Learning doesn't provide visited, use path as fallback
+                if not visited:
+                    print(f"Q-Learning: No visited list, using path as visited")
+                    visited = path
             else:
                 algo_instance = algo_class()
-            result = algo_instance.run(board, start)
-            path = result.get("path", [])
+                result = algo_instance.run(board, start)
+                path = result.get("path", [])
+                visited = result.get("visited", [])
             if not path:
                 print(f"{algorithm} failed to find a path to residents")
-            return path
+            # Debug: Print visited order to verify
+            print(f"{algorithm} visited order: {visited}")
+            return visited, path
         else:
             print(f"Algorithm {algorithm} not found")
-            return []
+            return [], []
 
     def update_walls(board, maze_map, num_walls):
-        """Update walls on the board and refresh the maze map."""
         board._update_walls(num_walls)
         return board.grid
 
     clock = pygame.time.Clock()
     running = True
     while running:
-        screen.fill((0, 0, 0))
+        mouse_pos = pygame.mouse.get_pos()
 
-        # Update walls periodically in moving mode
+        # Update walls periodically in moving mode, but only for unfinished mazes
         current_time = time.time()
         if current_mode == "moving" and current_time - last_wall_update_time >= WALL_UPDATE_INTERVAL:
-            maze_map1 = update_walls(board1, maze_map1, num_walls=20)
-            maze_map2 = update_walls(board2, maze_map2, num_walls=20)
+            if not left_finished:
+                maze_map1 = update_walls(board1, maze_map1, num_walls=20)
+            if not right_finished:
+                maze_map2 = update_walls(board2, maze_map2, num_walls=20)
             last_wall_update_time = current_time
-            print("Walls updated for both mazes")
+            print("Walls updated for unfinished mazes")
+            # Recompute paths only for unfinished mazes
+            if not left_finished:
+                left_visited, left_path = get_path(left_algo, board1, tuple(player1_pos))
+                left_visited_index = 0
+                if not left_path:
+                    left_finished = True
+                    print("Left maze: No valid path found after wall update, algorithm stopped")
+            if not right_finished:
+                right_visited, right_path = get_path(right_algo, board2, tuple(player2_pos))
+                right_visited_index = 0
+                if not right_path:
+                    right_finished = True
+                    print("Right maze: No valid path found after wall update, algorithm stopped")
 
         if current_mode == "main":
-            draw_maze(maze_map1, 50, player1_pos, resident1_pos, left_visited_residents, monster_img, resident_img)
-            draw_maze(maze_map2, 50 + MAZE_WIDTH + 50, player2_pos, resident2_pos, right_visited_residents, hero_img, resident_img)
-            draw_buttons(buttons)
+            screen.blit(bg_maze, (0, 0))
+            draw_maze(maze_map1, LEFT_MAZE_X, LEFT_MAZE_Y, player1_pos, resident1_pos, left_visited_residents, monster_img, resident_img, left_visited, left_visited_index)
+            draw_maze(maze_map2, RIGHT_MAZE_X, RIGHT_MAZE_Y, player2_pos, resident2_pos, right_visited_residents, hero_img, resident_img, right_visited, right_visited_index)
+            draw_buttons(buttons, mouse_pos)
         elif current_mode == "algorithm_select":
             draw_algorithm_select()
         elif current_mode == "moving":
-            draw_maze(maze_map1, 50, player1_pos, resident1_pos, left_visited_residents, monster_img, resident_img)
-            draw_maze(maze_map2, 50 + MAZE_WIDTH + 50, player2_pos, resident2_pos, right_visited_residents, hero_img, resident_img)
-            draw_buttons(buttons)
+            screen.blit(bg_maze, (0, 0))
+            draw_maze(maze_map1, LEFT_MAZE_X, LEFT_MAZE_Y, player1_pos, resident1_pos, left_visited_residents, monster_img, resident_img, left_visited, left_visited_index)
+            draw_maze(maze_map2, RIGHT_MAZE_X, RIGHT_MAZE_Y, player2_pos, resident2_pos, right_visited_residents, hero_img, resident_img, right_visited, right_visited_index)
+            draw_buttons(buttons, mouse_pos)
 
-            # Move players along their paths
             if current_time - last_move_time >= MOVE_DELAY:
-                # Left maze
-                if not left_finished and current_path_index < len(left_path):
-                    next_pos = left_path[current_path_index]
-                    # Check if the next position is valid after wall updates
+                # Process left maze if not finished
+                if not left_finished and left_visited_index < len(left_visited):
+                    next_pos = left_visited[left_visited_index]
                     if board1.is_valid_move(next_pos):
                         player1_pos = list(next_pos)
-                        # Check if the current position is a resident
                         if tuple(player1_pos) in resident1_pos and tuple(player1_pos) not in left_visited_residents:
                             left_visited_residents.append(tuple(player1_pos))
-                            print(f"Left maze: Reached resident at {player1_pos}, removing from display")
-                        if current_path_index == len(left_path) - 1:
+                            print(f"Left maze: Reached resident at {player1_pos}")
+                        # Check if all residents are visited
+                        if len(left_visited_residents) == len(resident1_pos):
                             left_finished = True
-                            print("Left maze: All residents reached, waiting for right maze")
+                            print("Left maze: All residents reached, character and visited tiles stopped")
+                        else:
+                            left_visited_index += 1
                     else:
-                        # Path is blocked; recompute path from current position
                         print(f"Left maze: Path blocked at {next_pos}, recomputing path")
-                        left_path = get_path(left_algo, board1, tuple(player1_pos))
-                        current_path_index = 0
-                        left_finished = False
-                        if not left_path:
+                        left_visited, left_path = get_path(left_algo, board1, tuple(player1_pos))
+                        left_visited_index = 0
+                        if not left_visited:
                             left_finished = True
-                            print("Left maze: No valid path found after wall update")
-                # Right maze
-                if not right_finished and current_path_index < len(right_path):
-                    next_pos = right_path[current_path_index]
-                    # Check if the next position is valid after wall updates
+                            print("Left maze: No valid path found, algorithm stopped")
+
+                # Process right maze if not finished
+                if not right_finished and right_visited_index < len(right_visited):
+                    next_pos = right_visited[right_visited_index]
                     if board2.is_valid_move(next_pos):
                         player2_pos = list(next_pos)
-                        # Check if the current position is a resident
                         if tuple(player2_pos) in resident2_pos and tuple(player2_pos) not in right_visited_residents:
                             right_visited_residents.append(tuple(player2_pos))
-                            print(f"Right maze: Reached resident at {player2_pos}, removing from display")
-                        if current_path_index == len(right_path) - 1:
+                            print(f"Right maze: Reached resident at {player2_pos}")
+                        # Check if all residents are visited
+                        if len(right_visited_residents) == len(resident2_pos):
                             right_finished = True
-                            print("Right maze: All residents reached, waiting for left maze")
+                            print("Right maze: All residents reached, character and visited tiles stopped")
+                        else:
+                            right_visited_index += 1
                     else:
-                        # Path is blocked; recompute path from current position
                         print(f"Right maze: Path blocked at {next_pos}, recomputing path")
-                        right_path = get_path(right_algo, board2, tuple(player2_pos))
-                        current_path_index = 0
-                        right_finished = False
-                        if not right_path:
+                        right_visited, right_path = get_path(right_algo, board2, tuple(player2_pos))
+                        right_visited_index = 0
+                        if not right_visited:
                             right_finished = True
-                            print("Right maze: No valid path found after wall update")
-                # Increment index only if at least one maze is still moving
-                if not (left_finished and right_finished):
-                    current_path_index += 1
-                # Check if both mazes have finished
+                            print("Right maze: No valid path found, algorithm stopped")
+
                 if left_finished and right_finished:
-                    print("Both mazes: All residents reached or no valid paths")
+                    print("Both mazes: All residents reached, algorithms stopped")
                     current_mode = "main"
                 last_move_time = current_time
 
@@ -282,21 +337,22 @@ def run_dynamic_mode():
                             elif button["text"] == "Start":
                                 current_mode = "algorithm_select"
                             elif button["text"] == "Restart":
-                                # Reset game state to start from the beginning
-                                player1_pos = list(board1.q_pos)  # Reset to (0, 0)
-                                player2_pos = list(board2.q_pos)  # Reset to (0, 0)
-                                left_visited_residents = []  # Clear visited residents
-                                right_visited_residents = []  # Clear visited residents
-                                left_path = []  # Clear path
-                                right_path = []  # Clear path
-                                current_path_index = 0  # Reset path index
-                                left_finished = False  # Reset finished flag
-                                right_finished = False  # Reset finished flag
-                                last_move_time = 0  # Reset move timer
-                                last_wall_update_time = 0  # Reset wall update timer
-                                left_algo = None  # Clear selected algorithm
-                                right_algo = None  # Clear selected algorithm
-                                # Regenerate boards
+                                player1_pos = list(board1.q_pos)
+                                player2_pos = list(board2.q_pos)
+                                left_visited_residents = []
+                                right_visited_residents = []
+                                left_visited = []
+                                right_visited = []
+                                left_path = []
+                                right_path = []
+                                left_visited_index = 0
+                                right_visited_index = 0
+                                left_finished = False
+                                right_finished = False
+                                last_move_time = 0
+                                last_wall_update_time = 0
+                                left_algo = None
+                                right_algo = None
                                 board1._update_walls(num_walls=20)
                                 board2._update_walls(num_walls=20)
                                 maze_map1 = board1.grid
@@ -317,12 +373,12 @@ def run_dynamic_mode():
                     if confirm_button["rect"].collidepoint(mouse_pos):
                         if left_algo and right_algo:
                             print(f"Algorithms confirmed: Left={left_algo}, Right={right_algo}")
-                            # Compute a single path to all residents for each maze
                             start_pos = (0, 0)
-                            left_path = get_path(left_algo, board1, start_pos)
-                            right_path = get_path(right_algo, board2, start_pos)
+                            left_visited, left_path = get_path(left_algo, board1, start_pos)
+                            right_visited, right_path = get_path(right_algo, board2, start_pos)
                             current_mode = "moving"
-                            current_path_index = 0
+                            left_visited_index = 0
+                            right_visited_index = 0
                             left_finished = False
                             right_finished = False
                             last_move_time = current_time
