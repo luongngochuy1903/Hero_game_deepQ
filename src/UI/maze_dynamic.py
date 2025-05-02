@@ -204,27 +204,19 @@ def run_dynamic_mode():
         }
         algo_class = algorithm_map.get(algorithm)
         if algo_class:
-            if algorithm == "Q-Learning":
-                algo_instance = algo_class()
-                result = algo_instance.run(board, start)
-                path = result.get("path", [])
-                visited = result.get("visited", [])
-                # If Q-Learning doesn't provide visited, use path as fallback
-                if not visited:
-                    print(f"Q-Learning: No visited list, using path as visited")
-                    visited = path
-            else:
-                algo_instance = algo_class()
-                result = algo_instance.run(board, start)
-                path = result.get("path", [])
-                visited = result.get("visited", [])
-            if not path:
-                print(f"{algorithm} failed to find a path to residents")
-            # Debug: Print visited order to verify
+            algo_instance = algo_class()
+            result = algo_instance.run(board, start)
+            path = result.get("path", [])
+            visited = result.get("visited", [])
+            if not visited:
+                print(f"{algorithm}: Không tìm thấy đường đi hợp lệ")
+                return [], []
+            if not path and len(visited) > 1:
+                print(f"{algorithm}: Không tìm thấy cư dân, nhưng có đường đi tạm thời")
             print(f"{algorithm} visited order: {visited}")
             return visited, path
         else:
-            print(f"Algorithm {algorithm} not found")
+            print(f"Thuật toán {algorithm} không tồn tại")
             return [], []
 
     def update_walls(board, maze_map, num_walls):
@@ -235,29 +227,30 @@ def run_dynamic_mode():
     running = True
     while running:
         mouse_pos = pygame.mouse.get_pos()
-
-        # Update walls periodically in moving mode, but only for unfinished mazes
         current_time = time.time()
+
+        # Cập nhật tường định kỳ và thử lại đường đi
         if current_mode == "moving" and current_time - last_wall_update_time >= WALL_UPDATE_INTERVAL:
             if not left_finished:
                 maze_map1 = update_walls(board1, maze_map1, num_walls=20)
-            if not right_finished:
-                maze_map2 = update_walls(board2, maze_map2, num_walls=20)
-            last_wall_update_time = current_time
-            print("Walls updated for unfinished mazes")
-            # Recompute paths only for unfinished mazes
-            if not left_finished:
                 left_visited, left_path = get_path(left_algo, board1, tuple(player1_pos))
                 left_visited_index = 0
-                if not left_path:
-                    left_finished = True
-                    print("Left maze: No valid path found after wall update, algorithm stopped")
+                if not left_visited:
+                    print("Left maze: Không tìm thấy đường đi, chờ cập nhật tường tiếp theo")
+                else:
+                    print("Left maze: Đã tìm thấy đường đi mới sau khi cập nhật tường")
+
             if not right_finished:
+                maze_map2 = update_walls(board2, maze_map2, num_walls=20)
                 right_visited, right_path = get_path(right_algo, board2, tuple(player2_pos))
                 right_visited_index = 0
-                if not right_path:
-                    right_finished = True
-                    print("Right maze: No valid path found after wall update, algorithm stopped")
+                if not right_visited:
+                    print("Right maze: Không tìm thấy đường đi, chờ cập nhật tường tiếp theo")
+                else:
+                    print("Right maze: Đã tìm thấy đường đi mới sau khi cập nhật tường")
+
+            last_wall_update_time = current_time
+            print("Walls updated for unfinished mazes")
 
         if current_mode == "main":
             screen.blit(bg_maze, (0, 0))
@@ -273,52 +266,48 @@ def run_dynamic_mode():
             draw_buttons(buttons, mouse_pos)
 
             if current_time - last_move_time >= MOVE_DELAY:
-                # Process left maze if not finished
+                # Xử lý mê cung trái nếu chưa hoàn tất
                 if not left_finished and left_visited_index < len(left_visited):
                     next_pos = left_visited[left_visited_index]
                     if board1.is_valid_move(next_pos):
                         player1_pos = list(next_pos)
                         if tuple(player1_pos) in resident1_pos and tuple(player1_pos) not in left_visited_residents:
                             left_visited_residents.append(tuple(player1_pos))
-                            print(f"Left maze: Reached resident at {player1_pos}")
-                        # Check if all residents are visited
+                            print(f"Left maze: Đã đến cư dân tại {player1_pos}")
                         if len(left_visited_residents) == len(resident1_pos):
                             left_finished = True
-                            print("Left maze: All residents reached, character and visited tiles stopped")
+                            print("Left maze: Đã tìm thấy tất cả cư dân, dừng thuật toán")
                         else:
                             left_visited_index += 1
                     else:
-                        print(f"Left maze: Path blocked at {next_pos}, recomputing path")
+                        print(f"Left maze: Đường đi bị chặn tại {next_pos}, chờ cập nhật tường")
                         left_visited, left_path = get_path(left_algo, board1, tuple(player1_pos))
                         left_visited_index = 0
                         if not left_visited:
-                            left_finished = True
-                            print("Left maze: No valid path found, algorithm stopped")
+                            print("Left maze: Không tìm thấy đường đi, chờ cập nhật tường tiếp theo")
 
-                # Process right maze if not finished
+                # Xử lý mê cung phải nếu chưa hoàn tất
                 if not right_finished and right_visited_index < len(right_visited):
                     next_pos = right_visited[right_visited_index]
                     if board2.is_valid_move(next_pos):
                         player2_pos = list(next_pos)
                         if tuple(player2_pos) in resident2_pos and tuple(player2_pos) not in right_visited_residents:
                             right_visited_residents.append(tuple(player2_pos))
-                            print(f"Right maze: Reached resident at {player2_pos}")
-                        # Check if all residents are visited
+                            print(f"Right maze: Đã đến cư dân tại {player2_pos}")
                         if len(right_visited_residents) == len(resident2_pos):
                             right_finished = True
-                            print("Right maze: All residents reached, character and visited tiles stopped")
+                            print("Right maze: Đã tìm thấy tất cả cư dân, dừng thuật toán")
                         else:
                             right_visited_index += 1
                     else:
-                        print(f"Right maze: Path blocked at {next_pos}, recomputing path")
+                        print(f"Right maze: Đường đi bị chặn tại {next_pos}, chờ cập nhật tường")
                         right_visited, right_path = get_path(right_algo, board2, tuple(player2_pos))
                         right_visited_index = 0
                         if not right_visited:
-                            right_finished = True
-                            print("Right maze: No valid path found, algorithm stopped")
+                            print("Right maze: Không tìm thấy đường đi, chờ cập nhật tường tiếp theo")
 
                 if left_finished and right_finished:
-                    print("Both mazes: All residents reached, algorithms stopped")
+                    print("Cả hai mê cung: Đã tìm thấy tất cả cư dân, dừng thuật toán")
                     current_mode = "main"
                 last_move_time = current_time
 
@@ -343,8 +332,6 @@ def run_dynamic_mode():
                                 right_visited_residents = []
                                 left_visited = []
                                 right_visited = []
-                                left_path = []
-                                right_path = []
                                 left_visited_index = 0
                                 right_visited_index = 0
                                 left_finished = False
@@ -373,7 +360,7 @@ def run_dynamic_mode():
                     if confirm_button["rect"].collidepoint(mouse_pos):
                         if left_algo and right_algo:
                             print(f"Algorithms confirmed: Left={left_algo}, Right={right_algo}")
-                            start_pos = (0, 0)
+                            start_pos = tuple(board1.q_pos)  # Sử dụng vị trí ban đầu của board
                             left_visited, left_path = get_path(left_algo, board1, start_pos)
                             right_visited, right_path = get_path(right_algo, board2, start_pos)
                             current_mode = "moving"
