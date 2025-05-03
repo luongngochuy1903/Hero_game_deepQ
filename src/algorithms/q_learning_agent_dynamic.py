@@ -157,7 +157,6 @@ class QLearningAgent:
                     print(f"[Q-Learning] Cứu công chúa tại {self.state}")
                     path.append(tuple(self.state))
                     princesses.discard(tuple(self.state))
-                    break  # Dừng sau khi tìm thấy một cư dân
 
                 # In Q-value để debug
                 try:
