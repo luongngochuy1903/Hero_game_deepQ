@@ -5,29 +5,28 @@ import os
 import time
 from collections import deque
 
-# Add path to dynamic_board and algorithms
+# Thêm đường dẫn đến dynamic_board và algorithms
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from board.dynamic_wall import DynamicBoard
 from algorithms.bfs import BFS
 from algorithms.dfs import DFS
-from algorithms.dijkstra import Dijkstra
 from algorithms.q_learning_agent_dynamic import QLearningAgent
 
 def run_dynamic_mode():
-    # Initialize Pygame
+    # Khởi tạo Pygame
     if not pygame.get_init():
         try:
             pygame.init()
         except Exception as e:
-            print(f"Pygame initialization failed: {e}")
+            print(f"Khởi tạo Pygame thất bại: {e}")
             return None
 
-    # Window settings
+    # Cài đặt cửa sổ
     WIDTH, HEIGHT = 1200, 750
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Mode Dynamic")
+    pygame.display.set_caption("Chế độ Động")
 
-    # Maze settings
+    # Cài đặt mê cung
     ROWS, COLS = 13, 13
     TILE_SIZE = 40
     PLAYER_SIZE = 90
@@ -35,13 +34,13 @@ def run_dynamic_mode():
     MAZE_WIDTH = COLS * TILE_SIZE
     MAZE_HEIGHT = ROWS * TILE_SIZE
 
-    # Define maze positions
+    # Xác định vị trí mê cung
     LEFT_MAZE_X = 30
     LEFT_MAZE_Y = 70
     RIGHT_MAZE_X = LEFT_MAZE_X + MAZE_WIDTH + 100
     RIGHT_MAZE_Y = 70
 
-    # Load images
+    # Tải hình ảnh
     try:
         wall_img = pygame.image.load("assets/build_maze/wall.png")
         wall_img = pygame.transform.scale(wall_img, (TILE_SIZE, TILE_SIZE))
@@ -58,35 +57,35 @@ def run_dynamic_mode():
         bg_algorithm = pygame.image.load("assets/back_ground/bg_algorithm.png")
         bg_algorithm = pygame.transform.scale(bg_algorithm, (WIDTH, HEIGHT))
     except FileNotFoundError as e:
-        print(f"Image loading failed: {e}")
+        print(f"Tải hình ảnh thất bại: {e}")
         return None
 
-    # Add color for highlighting visited tiles
-    VISITED_COLOR = (255, 0, 0)  # Red for visited tiles during movement
+    # Thêm màu để tô sáng các ô đã thăm
+    VISITED_COLOR = (255, 0, 0)  # Màu đỏ cho các ô đã thăm trong quá trình di chuyển
 
-    # Initialize two DynamicBoard instances
+    # Khởi tạo hai instance DynamicBoard
     residents = [(2, 1), (9, 4), (12, 12)]
     board1 = DynamicBoard(ROWS, COLS, residents)
     board1._update_walls(num_walls=20)
     maze_map1 = board1.grid
-    player1_pos = list(board1.q_pos)  # Left maze player (monster)
-    resident1_pos = board1.princesses
+    player1_pos = list(board1.q_pos)  # Vị trí người chơi mê cung trái (quái vật)
+    resident1_pos = board1.residents
 
     board2 = DynamicBoard(ROWS, COLS, residents)
     board2._update_walls(num_walls=20)
     maze_map2 = board2.grid
-    player2_pos = list(board2.q_pos)  # Right maze player (hero)
-    resident2_pos = board2.princesses
+    player2_pos = list(board2.q_pos)  # Vị trí người chơi mê cung phải (anh hùng)
+    resident2_pos = board2.residents
 
-    # Button settings
+    # Cài đặt nút
     try:
         button_font = pygame.font.SysFont("arial", 30, bold=True)
         title_font = pygame.font.SysFont("arial", 30, italic=True, bold=True)
     except Exception as e:
-        print(f"Font loading failed: {e}")
+        print(f"Tải font thất bại: {e}")
         return None
 
-    # Main screen buttons (centered below the mazes)
+    # Nút màn hình chính (nằm giữa dưới mê cung)
     button_width, button_height = 150, 50
     button_margin = 20
     button_y = LEFT_MAZE_Y + MAZE_HEIGHT + 50
@@ -98,11 +97,11 @@ def run_dynamic_mode():
         {"text": "Restart", "rect": pygame.Rect(start_x + 2 * (button_width + button_margin), button_y, button_width, button_height)},
     ]
 
-    # Algorithm selection buttons (centered)
+    # Nút chọn thuật toán (nằm giữa)
     algo_button_width, algo_button_height = 200, 50
     algo_button_margin = 10
     algo_y_start = 280
-    algorithms = ["BFS", "DFS", "Dijkstra", "Q-Learning"]
+    algorithms = ["BFS", "DFS", "Q-Learning"]
     left_algo_x = (WIDTH // 4) - (algo_button_width // 2)
     left_algo_buttons = [
         {"text": algo, "rect": pygame.Rect(left_algo_x, algo_y_start + i * (algo_button_height + algo_button_margin), algo_button_width, algo_button_height)}
@@ -118,13 +117,11 @@ def run_dynamic_mode():
     confirm_button = {"text": "Confirm", "rect": pygame.Rect(confirm_x, algo_y_start + 4 * (algo_button_height + algo_button_margin) + 20, 150, 50)}
     cancel_button = {"text": "Cancel", "rect": pygame.Rect(confirm_x + 150 + 20, algo_y_start + 4 * (algo_button_height + algo_button_margin) + 20, 150, 50)}
 
-    # Track selected algorithms, paths, visited lists, and states
+    # Theo dõi thuật toán, đường đi, danh sách thăm và trạng thái
     left_algo = None
     right_algo = None
     left_visited = []
     right_visited = []
-    left_path = []
-    right_path = []
     left_visited_index = 0
     right_visited_index = 0
     left_finished = False
@@ -138,6 +135,7 @@ def run_dynamic_mode():
     current_mode = "main"
 
     def draw_maze(maze, offset_x, offset_y, player_pos, resident_pos, visited_residents, player_img, resident_img, visited, current_index):
+        # Vẽ lưới mê cung
         for row in range(ROWS):
             for col in range(COLS):
                 tile = maze[row][col]
@@ -148,19 +146,19 @@ def run_dynamic_mode():
                 else:
                     screen.blit(floor_img, (x, y))
 
-        # Draw visited tiles (up to current index) in correct order
+        # Vẽ các ô đã thăm (đến chỉ số hiện tại)
         for i, pos in enumerate(visited[:current_index + 1]):
             x = offset_x + pos[1] * TILE_SIZE
             y = offset_y + pos[0] * TILE_SIZE
             pygame.draw.rect(screen, VISITED_COLOR, (x, y, TILE_SIZE, TILE_SIZE), 2)
 
-        # Draw residents (except those visited)
+        # Vẽ cư dân (trừ những người đã thăm)
         for resident in resident_pos:
             if resident not in visited_residents:
                 px, py = resident[1] * TILE_SIZE - OFFSET, resident[0] * TILE_SIZE - OFFSET
                 screen.blit(resident_img, (offset_x + px, offset_y + py))
 
-        # Draw player
+        # Vẽ người chơi
         px, py = player_pos[1] * TILE_SIZE - OFFSET, player_pos[0] * TILE_SIZE - OFFSET
         screen.blit(player_img, (offset_x + px, offset_y + py))
 
@@ -183,6 +181,7 @@ def run_dynamic_mode():
             screen.blit(text_surf, text_rect)
 
     def draw_algorithm_select():
+        # Vẽ màn hình chọn thuật toán
         screen.blit(bg_algorithm, (0, 0))
         title_left = title_font.render("Left Maze Algorithm", True, (255, 255, 255))
         title_left_rect = title_left.get_rect(center=(left_algo_x + algo_button_width // 2, algo_y_start - 40))
@@ -196,10 +195,10 @@ def run_dynamic_mode():
         draw_buttons([confirm_button, cancel_button], mouse_pos)
 
     def get_path(algorithm, board, start):
+        # Ánh xạ thuật toán
         algorithm_map = {
             "BFS": BFS,
             "DFS": DFS,
-            "Dijkstra": Dijkstra,
             "Q-Learning": QLearningAgent,
         }
         algo_class = algorithm_map.get(algorithm)
@@ -213,13 +212,14 @@ def run_dynamic_mode():
                 return [], []
             if not path and len(visited) > 1:
                 print(f"{algorithm}: Không tìm thấy cư dân, nhưng có đường đi tạm thời")
-            print(f"{algorithm} visited order: {visited}")
+            print(f"Thứ tự thăm của {algorithm}: {visited}")
             return visited, path
         else:
             print(f"Thuật toán {algorithm} không tồn tại")
             return [], []
 
     def update_walls(board, maze_map, num_walls):
+        # Cập nhật tường động
         board._update_walls(num_walls)
         return board.grid
 
@@ -229,28 +229,28 @@ def run_dynamic_mode():
         mouse_pos = pygame.mouse.get_pos()
         current_time = time.time()
 
-        # Cập nhật tường định kỳ và thử lại đường đi
+        # Cập nhật tường định kỳ và tìm lại đường đi
         if current_mode == "moving" and current_time - last_wall_update_time >= WALL_UPDATE_INTERVAL:
             if not left_finished:
                 maze_map1 = update_walls(board1, maze_map1, num_walls=20)
                 left_visited, left_path = get_path(left_algo, board1, tuple(player1_pos))
                 left_visited_index = 0
                 if not left_visited:
-                    print("Left maze: Không tìm thấy đường đi, chờ cập nhật tường tiếp theo")
+                    print("Mê cung trái: Không tìm thấy đường đi, chờ cập nhật tường tiếp theo")
                 else:
-                    print("Left maze: Đã tìm thấy đường đi mới sau khi cập nhật tường")
+                    print("Mê cung trái: Đã tìm thấy đường đi mới sau khi cập nhật tường")
 
             if not right_finished:
                 maze_map2 = update_walls(board2, maze_map2, num_walls=20)
                 right_visited, right_path = get_path(right_algo, board2, tuple(player2_pos))
                 right_visited_index = 0
                 if not right_visited:
-                    print("Right maze: Không tìm thấy đường đi, chờ cập nhật tường tiếp theo")
+                    print("Mê cung phải: Không tìm thấy đường đi, chờ cập nhật tường tiếp theo")
                 else:
-                    print("Right maze: Đã tìm thấy đường đi mới sau khi cập nhật tường")
+                    print("Mê cung phải: Đã tìm thấy đường đi mới sau khi cập nhật tường")
 
             last_wall_update_time = current_time
-            print("Walls updated for unfinished mazes")
+            print("Đã cập nhật tường cho các mê cung chưa hoàn tất")
 
         if current_mode == "main":
             screen.blit(bg_maze, (0, 0))
@@ -273,18 +273,18 @@ def run_dynamic_mode():
                         player1_pos = list(next_pos)
                         if tuple(player1_pos) in resident1_pos and tuple(player1_pos) not in left_visited_residents:
                             left_visited_residents.append(tuple(player1_pos))
-                            print(f"Left maze: Đã đến cư dân tại {player1_pos}")
+                            print(f"Mê cung trái: Đã đến cư dân tại {player1_pos}")
                         if len(left_visited_residents) == len(resident1_pos):
                             left_finished = True
-                            print("Left maze: Đã tìm thấy tất cả cư dân, dừng thuật toán")
+                            print("Mê cung trái: Đã tìm thấy tất cả cư dân, dừng thuật toán")
                         else:
                             left_visited_index += 1
                     else:
-                        print(f"Left maze: Đường đi bị chặn tại {next_pos}, chờ cập nhật tường")
+                        print(f"Mê cung trái: Đường đi bị chặn tại {next_pos}, chờ cập nhật tường")
                         left_visited, left_path = get_path(left_algo, board1, tuple(player1_pos))
                         left_visited_index = 0
                         if not left_visited:
-                            print("Left maze: Không tìm thấy đường đi, chờ cập nhật tường tiếp theo")
+                            print("Mê cung trái: Không tìm thấy đường đi, chờ cập nhật tường tiếp theo")
 
                 # Xử lý mê cung phải nếu chưa hoàn tất
                 if not right_finished and right_visited_index < len(right_visited):
@@ -293,18 +293,18 @@ def run_dynamic_mode():
                         player2_pos = list(next_pos)
                         if tuple(player2_pos) in resident2_pos and tuple(player2_pos) not in right_visited_residents:
                             right_visited_residents.append(tuple(player2_pos))
-                            print(f"Right maze: Đã đến cư dân tại {player2_pos}")
+                            print(f"Mê cung phải: Đã đến cư dân tại {player2_pos}")
                         if len(right_visited_residents) == len(resident2_pos):
                             right_finished = True
-                            print("Right maze: Đã tìm thấy tất cả cư dân, dừng thuật toán")
+                            print("Mê cung phải: Đã tìm thấy tất cả cư dân, dừng thuật toán")
                         else:
                             right_visited_index += 1
                     else:
-                        print(f"Right maze: Đường đi bị chặn tại {next_pos}, chờ cập nhật tường")
+                        print(f"Mê cung phải: Đường đi bị chặn tại {next_pos}, chờ cập nhật tường")
                         right_visited, right_path = get_path(right_algo, board2, tuple(player2_pos))
                         right_visited_index = 0
                         if not right_visited:
-                            print("Right maze: Không tìm thấy đường đi, chờ cập nhật tường tiếp theo")
+                            print("Mê cung phải: Không tìm thấy đường đi, chờ cập nhật tường tiếp theo")
 
                 if left_finished and right_finished:
                     print("Cả hai mê cung: Đã tìm thấy tất cả cư dân, dừng thuật toán")
@@ -320,7 +320,7 @@ def run_dynamic_mode():
                 if current_mode == "main":
                     for button in buttons:
                         if button["rect"].collidepoint(mouse_pos):
-                            print(f"{button['text']} clicked")
+                            print(f"Đã nhấn {button['text']}")
                             if button["text"] == "Back":
                                 return "mode_select"
                             elif button["text"] == "Start":
@@ -344,22 +344,22 @@ def run_dynamic_mode():
                                 board2._update_walls(num_walls=20)
                                 maze_map1 = board1.grid
                                 maze_map2 = board2.grid
-                                print("Game restarted")
+                                print("Trò chơi đã khởi động lại")
                             break
                 elif current_mode == "algorithm_select":
                     for button in left_algo_buttons:
                         if button["rect"].collidepoint(mouse_pos):
                             left_algo = button["text"]
-                            print(f"Left maze algorithm selected: {left_algo}")
+                            print(f"Đã chọn thuật toán mê cung trái: {left_algo}")
                             break
                     for button in right_algo_buttons:
                         if button["rect"].collidepoint(mouse_pos):
                             right_algo = button["text"]
-                            print(f"Right maze algorithm selected: {right_algo}")
+                            print(f"Đã chọn thuật toán mê cung phải: {right_algo}")
                             break
                     if confirm_button["rect"].collidepoint(mouse_pos):
                         if left_algo and right_algo:
-                            print(f"Algorithms confirmed: Left={left_algo}, Right={right_algo}")
+                            print(f"Xác nhận thuật toán: Trái={left_algo}, Phải={right_algo}")
                             start_pos = tuple(board1.q_pos)  # Sử dụng vị trí ban đầu của board
                             left_visited, left_path = get_path(left_algo, board1, start_pos)
                             right_visited, right_path = get_path(right_algo, board2, start_pos)
@@ -371,7 +371,7 @@ def run_dynamic_mode():
                             last_move_time = current_time
                             last_wall_update_time = current_time
                         else:
-                            print("Please select an algorithm for both mazes")
+                            print("Vui lòng chọn thuật toán cho cả hai mê cung")
                     elif cancel_button["rect"].collidepoint(mouse_pos):
                         left_algo = None
                         right_algo = None

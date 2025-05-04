@@ -4,29 +4,28 @@ import numpy as np
 import os
 import time
 
-# Add path to static_board and algorithms
+# Thêm đường dẫn đến static_board và algorithms
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from board.static_board import StaticBoard
 from algorithms.bfs import BFS
 from algorithms.dfs import DFS
-from algorithms.dijkstra import Dijkstra
 from algorithms.q_learning_agent_static import QLearningAgent
 
 def run_static_mode():
-    # Initialize Pygame
+    # Khởi tạo Pygame
     if not pygame.get_init():
         try:
             pygame.init()
         except Exception as e:
-            print(f"Pygame initialization failed: {e}")
+            print(f"Khởi tạo Pygame thất bại: {e}")
             return None
 
-    # Window settings
+    # Cài đặt cửa sổ
     WIDTH, HEIGHT = 1200, 750
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Mode Static")
+    pygame.display.set_caption("Chế độ Tĩnh")
 
-    # Maze settings
+    # Cài đặt mê cung
     ROWS, COLS = 13, 13
     TILE_SIZE = 40
     PLAYER_SIZE = 90
@@ -34,13 +33,13 @@ def run_static_mode():
     MAZE_WIDTH = COLS * TILE_SIZE
     MAZE_HEIGHT = ROWS * TILE_SIZE
 
-    # Define maze positions
+    # Xác định vị trí mê cung
     LEFT_MAZE_X = 30
     LEFT_MAZE_Y = 70
     RIGHT_MAZE_X = LEFT_MAZE_X + MAZE_WIDTH + 100
     RIGHT_MAZE_Y = 70
 
-    # Load images
+    # Tải hình ảnh
     try:
         wall_img = pygame.image.load("assets/build_maze/wall.png")
         wall_img = pygame.transform.scale(wall_img, (TILE_SIZE, TILE_SIZE))
@@ -57,38 +56,38 @@ def run_static_mode():
         bg_algorithm = pygame.image.load("assets/back_ground/bg_algorithm.png")
         bg_algorithm = pygame.transform.scale(bg_algorithm, (WIDTH, HEIGHT))
     except FileNotFoundError as e:
-        print(f"Image loading failed: {e}")
+        print(f"Tải hình ảnh thất bại: {e}")
         return None
 
-    # Add a color for highlighting the final path
-    PATH_HIGHLIGHT_COLOR = (0, 255, 0)  # Yellow for the final path
-    VISITED_COLOR = (255, 0, 0)  # Green for visited tiles during movement
+    # Thêm màu để tô sáng đường đi cuối cùng
+    PATH_HIGHLIGHT_COLOR = (0, 255, 0)  # Màu vàng cho đường đi cuối cùng
+    VISITED_COLOR = (255, 0, 0)  # Màu đỏ cho các ô đã thăm trong quá trình di chuyển
 
-    # Initialize two StaticBoard instances
+    # Khởi tạo hai instance StaticBoard
     residents = [(2, 1), (9, 4), (12, 12)]
     board1 = StaticBoard(ROWS, COLS, residents)
     board1.generate_board()
     maze_map1 = board1.grid
-    player1_pos = list(board1.q_pos)  # Left maze player (monster)
-    resident1_pos = board1.princesses
+    player1_pos = list(board1.q_pos)  # Vị trí người chơi mê cung trái (quái vật)
+    resident1_pos = board1.residents
 
     board2 = StaticBoard(ROWS, COLS, residents)
     board2.generate_board()
     maze_map2 = board2.grid
-    player2_pos = list(board2.q_pos)  # Right maze player (hero)
-    resident2_pos = board2.princesses
+    player2_pos = list(board2.q_pos)  # Vị trí người chơi mê cung phải (anh hùng)
+    resident2_pos = board2.residents
     
-    # Button settings
+    # Cài đặt nút
     try:
-        # Font for buttons (bold, not italic)
+        # Font cho các nút (đậm, không nghiêng)
         button_font = pygame.font.SysFont("arial", 30, bold=True)
-        # Font for titles (italic, not bold)
+        # Font cho tiêu đề (nghiêng, đậm)
         title_font = pygame.font.SysFont("arial", 30, italic=True, bold=True)
     except Exception as e:
-        print(f"Font loading failed: {e}")
+        print(f"Tải font thất bại: {e}")
         return None
 
-    # Main screen buttons (centered below the mazes)
+    # Nút màn hình chính (nằm giữa dưới mê cung)
     button_width, button_height = 150, 50
     button_margin = 20
     button_y = LEFT_MAZE_Y + MAZE_HEIGHT + 50
@@ -100,11 +99,11 @@ def run_static_mode():
         {"text": "Restart", "rect": pygame.Rect(start_x + 2 * (button_width + button_margin), button_y, button_width, button_height)},
     ]
 
-    # Algorithm selection buttons (centered)
+    # Nút chọn thuật toán (nằm giữa)
     algo_button_width, algo_button_height = 200, 50
     algo_button_margin = 10
     algo_y_start = 280
-    algorithms = ["BFS", "DFS", "Dijkstra", "Q-Learning"]
+    algorithms = ["BFS", "DFS", "Q-Learning"]
     left_algo_x = (WIDTH // 4) - (algo_button_width // 2)
     left_algo_buttons = [
         {"text": algo, "rect": pygame.Rect(left_algo_x, algo_y_start + i * (algo_button_height + algo_button_margin), algo_button_width, algo_button_height)}
@@ -120,13 +119,13 @@ def run_static_mode():
     confirm_button = {"text": "Confirm", "rect": pygame.Rect(confirm_x, algo_y_start + 4 * (algo_button_height + algo_button_margin) + 20, 150, 50)}
     cancel_button = {"text": "Cancel", "rect": pygame.Rect(confirm_x + 150 + 20, algo_y_start + 4 * (algo_button_height + algo_button_margin) + 20, 150, 50)}
 
-    # Track selected algorithms, paths, visited lists, and states
+    # Theo dõi thuật toán đã chọn, đường đi, danh sách thăm và trạng thái
     left_algo = None
     right_algo = None
-    left_visited = []  # Store visited order
-    right_visited = []  # Store visited order
-    left_path = []  # Store final path
-    right_path = []  # Store final path
+    left_visited = []  # Lưu thứ tự thăm bên trái
+    right_visited = []  # Lưu thứ tự thăm bên phải
+    left_path = []  # Lưu đường đi cuối cùng bên trái
+    right_path = []  # Lưu đường đi cuối cùng bên phải
     current_visited_index = 0
     left_finished = False
     right_finished = False
@@ -135,10 +134,10 @@ def run_static_mode():
     last_move_time = 0
     MOVE_DELAY = 0.5
     current_mode = "main"
-    show_final_path = False  # Flag to show final path after movement
+    show_final_path = False  # Cờ để hiển thị đường đi cuối cùng sau khi di chuyển
 
     def draw_maze(maze, offset_x, offset_y, player_pos, resident_pos, visited_residents, player_img, resident_img, visited, path, current_index):
-        # Draw the maze grid
+        # Vẽ lưới mê cung
         for row in range(ROWS):
             for col in range(COLS):
                 tile = maze[row][col]
@@ -149,26 +148,26 @@ def run_static_mode():
                 else:
                     screen.blit(floor_img, (x, y))
 
-        # Draw visited tiles (up to current index)
+        # Vẽ các ô đã thăm (đến chỉ số hiện tại)
         for i, pos in enumerate(visited[:current_index + 1]):
             x = offset_x + pos[1] * TILE_SIZE
             y = offset_y + pos[0] * TILE_SIZE
             pygame.draw.rect(screen, VISITED_COLOR, (x, y, TILE_SIZE, TILE_SIZE), 2)
 
-        # Draw final path if movement is complete
+        # Vẽ đường đi cuối cùng nếu đã hoàn thành di chuyển
         if show_final_path:
             for pos in path:
                 x = offset_x + pos[1] * TILE_SIZE
                 y = offset_y + pos[0] * TILE_SIZE
                 pygame.draw.rect(screen, PATH_HIGHLIGHT_COLOR, (x, y, TILE_SIZE, TILE_SIZE), 4)
 
-        # Draw residents (except those visited)
+        # Vẽ cư dân (trừ những người đã thăm)
         for resident in resident_pos:
             if resident not in visited_residents:
                 px, py = resident[1] * TILE_SIZE - OFFSET, resident[0] * TILE_SIZE - OFFSET
                 screen.blit(resident_img, (offset_x + px, offset_y + py))
 
-        # Draw player
+        # Vẽ người chơi
         px, py = player_pos[1] * TILE_SIZE - OFFSET, player_pos[0] * TILE_SIZE - OFFSET
         screen.blit(player_img, (offset_x + px, offset_y + py))
 
@@ -192,7 +191,7 @@ def run_static_mode():
 
     def draw_algorithm_select():
         screen.blit(bg_algorithm, (0, 0))
-        # Use title_font for rendering titles (italic)
+        # Sử dụng title_font để vẽ tiêu đề (nghiêng)
         title_left = title_font.render("Left Maze Algorithm", True, (255, 255, 255))
         title_left_rect = title_left.get_rect(center=(left_algo_x + algo_button_width // 2, algo_y_start - 40))
         screen.blit(title_left, title_left_rect)
@@ -205,10 +204,10 @@ def run_static_mode():
         draw_buttons([confirm_button, cancel_button], mouse_pos)
 
     def get_path(algorithm, board, start):
+        # Ánh xạ thuật toán
         algorithm_map = {
             "BFS": BFS,
             "DFS": DFS,
-            "Dijkstra": Dijkstra,
             "Q-Learning": QLearningAgent,
         }
         algo_class = algorithm_map.get(algorithm)
@@ -218,10 +217,10 @@ def run_static_mode():
             path = result.get("path", [])
             visited = result.get("visited", [])
             if not path:
-                print(f"{algorithm} failed to find a path to residents")
-            return visited, path  # Return both visited and path
+                print(f"{algorithm} không tìm thấy đường đến cư dân")
+            return visited, path  # Trả về danh sách thăm và đường đi
         else:
-            print(f"Algorithm {algorithm} not found")
+            print(f"Không tìm thấy thuật toán {algorithm}")
             return [], []
 
     clock = pygame.time.Clock()
@@ -248,26 +247,26 @@ def run_static_mode():
                     player1_pos = list(left_visited[current_visited_index])
                     if tuple(player1_pos) in resident1_pos and tuple(player1_pos) not in left_visited_residents:
                         left_visited_residents.append(tuple(player1_pos))
-                        print(f"Left maze: Reached resident at {player1_pos}")
+                        print(f"Mê cung trái: Đã đến cư dân tại {player1_pos}")
                     if current_visited_index == len(left_visited) - 1:
                         left_finished = True
-                        print("Left maze: Visited all positions")
+                        print("Mê cung trái: Đã thăm tất cả vị trí")
 
                 if not right_finished and current_visited_index < len(right_visited):
                     player2_pos = list(right_visited[current_visited_index])
                     if tuple(player2_pos) in resident2_pos and tuple(player2_pos) not in right_visited_residents:
                         right_visited_residents.append(tuple(player2_pos))
-                        print(f"Right maze: Reached resident at {player2_pos}")
+                        print(f"Mê cung phải: Đã đến cư dân tại {player2_pos}")
                     if current_visited_index == len(right_visited) - 1:
                         right_finished = True
-                        print("Right maze: Visited all positions")
+                        print("Mê cung phải: Đã thăm tất cả vị trí")
 
                 if not (left_finished and right_finished):
                     current_visited_index += 1
 
                 if left_finished and right_finished:
-                    print("Both mazes: All positions visited, highlighting final path")
-                    show_final_path = True  # Enable final path highlighting
+                    print("Cả hai mê cung: Đã thăm tất cả vị trí, tô sáng đường đi cuối cùng")
+                    show_final_path = True  # Kích hoạt tô sáng đường đi cuối cùng
                     current_mode = "main"
                 last_move_time = current_time
 
@@ -280,7 +279,7 @@ def run_static_mode():
                 if current_mode == "main":
                     for button in buttons:
                         if button["rect"].collidepoint(mouse_pos):
-                            print(f"{button['text']} clicked")
+                            print(f"Đã nhấn {button['text']}")
                             if button["text"] == "Back":
                                 return "mode_select"
                             elif button["text"] == "Start":
@@ -301,22 +300,22 @@ def run_static_mode():
                                 last_move_time = 0
                                 left_algo = None
                                 right_algo = None
-                                print("Game restarted")
+                                print("Trò chơi đã khởi động lại")
                             break
                 elif current_mode == "algorithm_select":
                     for button in left_algo_buttons:
                         if button["rect"].collidepoint(mouse_pos):
                             left_algo = button["text"]
-                            print(f"Left maze algorithm selected: {left_algo}")
+                            print(f"Đã chọn thuật toán mê cung trái: {left_algo}")
                             break
                     for button in right_algo_buttons:
                         if button["rect"].collidepoint(mouse_pos):
                             right_algo = button["text"]
-                            print(f"Right maze algorithm selected: {right_algo}")
+                            print(f"Đã chọn thuật toán mê cung phải: {right_algo}")
                             break
                     if confirm_button["rect"].collidepoint(mouse_pos):
                         if left_algo and right_algo:
-                            print(f"Algorithms confirmed: Left={left_algo}, Right={right_algo}")
+                            print(f"Xác nhận thuật toán: Trái={left_algo}, Phải={right_algo}")
                             start_pos = (0, 0)
                             left_visited, left_path = get_path(left_algo, board1, start_pos)
                             right_visited, right_path = get_path(right_algo, board2, start_pos)

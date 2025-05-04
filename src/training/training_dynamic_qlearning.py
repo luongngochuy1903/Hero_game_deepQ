@@ -50,7 +50,7 @@ state_size = [13, 13]
 ROWS = 13
 COLS = 13
 q_table = None
-save_path = "../Hero_game_deepQ/dynamic_model/q_table.pkl"
+save_path = "model/dynamic_model/q_table.pkl"
 if os.path.exists(save_path):
     with open(save_path, "rb") as f:
         q_table = pickle.load(f)
