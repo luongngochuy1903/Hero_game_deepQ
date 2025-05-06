@@ -66,15 +66,15 @@ def run_dynamic_mode():
     # Khởi tạo hai instance DynamicBoard
     residents = [(2, 1), (9, 4), (12, 12)]
     board1 = DynamicBoard(ROWS, COLS, residents)
-    board1._update_walls(num_walls=20)
+    player1_pos = board1.q_pos  # Vị trí người chơi mê cung trái (quái vật)
+    board1._update_walls(20, player1_pos)
     maze_map1 = board1.grid
-    player1_pos = list(board1.q_pos)  # Vị trí người chơi mê cung trái (quái vật)
     resident1_pos = board1.residents
 
     board2 = DynamicBoard(ROWS, COLS, residents)
-    board2._update_walls(num_walls=20)
+    player2_pos = board2.q_pos  # Vị trí người chơi mê cung phải (anh hùng)
+    board2._update_walls(20, player2_pos)
     maze_map2 = board2.grid
-    player2_pos = list(board2.q_pos)  # Vị trí người chơi mê cung phải (anh hùng)
     resident2_pos = board2.residents
 
     # Cài đặt nút
@@ -218,9 +218,9 @@ def run_dynamic_mode():
             print(f"Thuật toán {algorithm} không tồn tại")
             return [], []
 
-    def update_walls(board, maze_map, num_walls):
+    def update_walls(board, maze_map, num_walls, player_pos):
         # Cập nhật tường động
-        board._update_walls(num_walls)
+        board._update_walls(num_walls, player_pos)
         return board.grid
 
     clock = pygame.time.Clock()
@@ -232,7 +232,7 @@ def run_dynamic_mode():
         # Cập nhật tường định kỳ và tìm lại đường đi
         if current_mode == "moving" and current_time - last_wall_update_time >= WALL_UPDATE_INTERVAL:
             if not left_finished:
-                maze_map1 = update_walls(board1, maze_map1, num_walls=20)
+                maze_map1 = update_walls(board1, maze_map1, 20, player1_pos)
                 left_visited, left_path = get_path(left_algo, board1, tuple(player1_pos))
                 left_visited_index = 0
                 if not left_visited:
@@ -241,7 +241,7 @@ def run_dynamic_mode():
                     print("Mê cung trái: Đã tìm thấy đường đi mới sau khi cập nhật tường")
 
             if not right_finished:
-                maze_map2 = update_walls(board2, maze_map2, num_walls=20)
+                maze_map2 = update_walls(board2, maze_map2, 20, player2_pos)
                 right_visited, right_path = get_path(right_algo, board2, tuple(player2_pos))
                 right_visited_index = 0
                 if not right_visited:
@@ -340,8 +340,8 @@ def run_dynamic_mode():
                                 last_wall_update_time = 0
                                 left_algo = None
                                 right_algo = None
-                                board1._update_walls(num_walls=20)
-                                board2._update_walls(num_walls=20)
+                                board1._update_walls(20, player1_pos)
+                                board2._update_walls(20, player2_pos)
                                 maze_map1 = board1.grid
                                 maze_map2 = board2.grid
                                 print("Trò chơi đã khởi động lại")

@@ -14,12 +14,12 @@ class DynamicBoard:
         self.q_pos = (0, 0)
         self.count_to_change = 0
 
-    def _update_walls(self, num_walls):
+    def _update_walls(self, num_walls, player_pos):
         self.grid = [[0 for _ in range(self.cols)] for _ in range(self.rows)]
         walls_placed = 0
         while walls_placed < num_walls:
             x, y = random.randint(0, self.rows - 1), random.randint(0, self.cols - 1)
-            if self.grid[x][y] == 0 and (x, y) != (0, 0) and (x, y) not in self.residents:
+            if self.grid[x][y] == 0 and (x, y) != (0, 0) and (x, y) not in self.residents and (x, y) != tuple(player_pos):
                 self.grid[x][y] = 1
                 walls_placed += 1
         return self.grid
