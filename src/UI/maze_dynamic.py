@@ -5,7 +5,6 @@ import os
 import time
 from collections import deque
 
-# Thêm đường dẫn đến dynamic_board và algorithms
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from board.dynamic_wall import DynamicBoard
 from algorithms.bfs import BFS
@@ -61,7 +60,7 @@ def run_dynamic_mode():
         return None
 
     # Thêm màu để tô sáng các ô đã thăm
-    VISITED_COLOR = (255, 0, 0)  # Màu đỏ cho các ô đã thăm trong quá trình di chuyển
+    VISITED_COLOR = (255, 0, 0) 
 
     # Khởi tạo hai instance DynamicBoard
     residents = [(2, 1), (9, 4), (12, 12)]
@@ -85,7 +84,7 @@ def run_dynamic_mode():
         print(f"Tải font thất bại: {e}")
         return None
 
-    # Nút màn hình chính (nằm giữa dưới mê cung)
+    # Nút màn hình chính
     button_width, button_height = 150, 50
     button_margin = 20
     button_y = LEFT_MAZE_Y + MAZE_HEIGHT + 50
@@ -97,7 +96,7 @@ def run_dynamic_mode():
         {"text": "Restart", "rect": pygame.Rect(start_x + 2 * (button_width + button_margin), button_y, button_width, button_height)},
     ]
 
-    # Nút chọn thuật toán (nằm giữa)
+    # Nút chọn thuật toán 
     algo_button_width, algo_button_height = 200, 50
     algo_button_margin = 10
     algo_y_start = 280

@@ -14,7 +14,7 @@ def run_menu():
         
     pygame.mixer.init()
 
-    #Tải và phát nhạc nền
+    # Tải và phát nhạc nền
     pygame.mixer.music.load("assets/sounds/horror-tension-suspense-322304.mp3")  # Đường dẫn tới tệp nhạc
     pygame.mixer.music.play(-1)  # -1 để phát lặp vô hạn
 

@@ -60,8 +60,8 @@ def run_static_mode():
         return None
 
     # Thêm màu để tô sáng đường đi cuối cùng
-    PATH_HIGHLIGHT_COLOR = (0, 255, 0)  # Màu vàng cho đường đi cuối cùng
-    VISITED_COLOR = (255, 0, 0)  # Màu đỏ cho các ô đã thăm trong quá trình di chuyển
+    PATH_HIGHLIGHT_COLOR = (0, 255, 0) 
+    VISITED_COLOR = (255, 0, 0) 
 
     # Khởi tạo hai instance StaticBoard
     residents = [(2, 1), (9, 4), (12, 12)]
@@ -79,15 +79,13 @@ def run_static_mode():
     
     # Cài đặt nút
     try:
-        # Font cho các nút (đậm, không nghiêng)
         button_font = pygame.font.SysFont("arial", 30, bold=True)
-        # Font cho tiêu đề (nghiêng, đậm)
         title_font = pygame.font.SysFont("arial", 30, italic=True, bold=True)
     except Exception as e:
         print(f"Tải font thất bại: {e}")
         return None
 
-    # Nút màn hình chính (nằm giữa dưới mê cung)
+    # Nút màn hình chính
     button_width, button_height = 150, 50
     button_margin = 20
     button_y = LEFT_MAZE_Y + MAZE_HEIGHT + 50
@@ -99,7 +97,7 @@ def run_static_mode():
         {"text": "Restart", "rect": pygame.Rect(start_x + 2 * (button_width + button_margin), button_y, button_width, button_height)},
     ]
 
-    # Nút chọn thuật toán (nằm giữa)
+    # Nút chọn thuật toán
     algo_button_width, algo_button_height = 200, 50
     algo_button_margin = 10
     algo_y_start = 280
